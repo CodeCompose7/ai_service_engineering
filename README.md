@@ -19,6 +19,14 @@
 - 컨텍스트 엔지니어링 — 모델이 무엇을 언제 보는가 (S4)
 - 하네스 엔지니어링 — 그걸 돌리는 제어 루프·도구·메모리·가드레일·검증 (S4)
 
+```mermaid
+flowchart TD
+  M["모델"] --> P["프롬프트 엔지니어링<br/>모델에 줄 지시 · S1"]
+  P --> C["컨텍스트 엔지니어링<br/>무엇을 언제 보는가 · S4"]
+  C --> H["하네스 엔지니어링<br/>제어 루프·도구·메모리·가드레일·검증 · S4"]
+  classDef default rx:8,ry:8;
+```
+
 프로바이더 독립 원칙 (LiteLLM-first, Ollama-verified):
 
 - 모든 생성(LLM) 호출은 반드시 LiteLLM을 경유합니다. 프로바이더별 SDK 직접 호출은 하지 않습니다.
@@ -48,6 +56,12 @@
 | S5 | 서빙 & 배포 (FastAPI → Render/Railway) | 40 | 2 |
 | 캡스톤 | end-to-end 미니 데모 | 22 | 1 |
 | 합계 | | 480 | 30 |
+
+```mermaid
+flowchart LR
+  S1["S1<br/>LLM을 서비스로"] --> S2["S2<br/>데이터 & RAG"] --> S3["S3<br/>Agent 빌드"] --> S4["S4<br/>컨텍스트·하네스"] --> S5["S5<br/>서빙·배포"] --> CAP["캡스톤<br/>통합 데모"]
+  classDef default rx:8,ry:8;
+```
 
 각 단위의 상세 내용은 [docs/plan/vod_plan.md](docs/plan/vod_plan.md)를 참고하시기 바랍니다.
 

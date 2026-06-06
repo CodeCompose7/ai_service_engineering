@@ -43,6 +43,24 @@
 - 본문 서술 문장에 적용합니다.
 - 표 셀의 짧은 키워드 나열, 체크리스트 항목, 코드 주석에는 강제하지 않습니다.
 
+## Mermaid 다이어그램
+
+구조나 흐름을 보일 때 mermaid 다이어그램을 활용합니다.
+
+### 노드에 radius를 넣습니다
+
+mermaid 노드는 모서리를 둥글게(radius) 그립니다. flowchart에서는 다이어그램 끝에 `classDef default` 한 줄을 넣어 모든 노드에 한 번에 radius를 적용합니다.
+
+```mermaid
+flowchart TD
+  A[입력] --> B[LiteLLM]
+  B --> C[모델]
+  classDef default rx:8,ry:8;
+```
+
+- `rx`, `ry`로 가로·세로 모서리 반경을 지정합니다. 기본값은 8 정도로 둡니다.
+- 특정 노드만 다르게 주고 싶으면 별도 `classDef`를 만들어 `class 노드 클래스명;`으로 지정합니다.
+
 ## 사람이 쓴 글처럼
 
 AI가 쓴 티가 심하게 나지 않게, 담백하게 씁니다.
