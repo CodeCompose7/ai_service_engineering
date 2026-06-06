@@ -9,41 +9,33 @@
 이번 단위는 코드를 작성하는 단위가 아닙니다. 환경을 맞추고, 공유된 예제 하나를 실행해 연결을 확인하는 것이 산출물입니다.
 
 ```mermaid
-flowchart TD
-  subgraph HOST["호스트 (내 OS)"]
-    DK["Docker Desktop"]
-    OLM["Ollama<br/>gemma4:12b-mxfp8"]
+flowchart TB
+  subgraph COMP["내 컴퓨터 (호스트)"]
+    subgraph DOCKER["Docker"]
+      DF1["개발 Dockerfile"] --> DEV["dev 컨테이너"]
+      DF1 --> TEST["유닛테스트 컨테이너"]
+      DF2["실행 Dockerfile"] --> RUN["실행 컨테이너"]
+    end
+    OLL["Ollama<br/>gemma4:12b-mxfp8"]
   end
-  subgraph DEV["devcontainer · Python 3.13 + uv"]
-    CODE["공유된 예제 코드"]
-  end
-  DK --> DEV
-  CODE -. "host.docker.internal" .-> OLM
-  CODE -. "API 호출" .-> CLOUD["클라우드 프로바이더<br/>Gemini · OpenAI · Claude"]
+  EXT["외부 AI 프로바이더<br/>Gemini · OpenAI · Claude"]
+  DEV -. "host.docker.internal" .-> OLL
+  RUN -. "host.docker.internal" .-> OLL
+  DEV -. "API 호출" .-> EXT
+  RUN -. "API 호출" .-> EXT
   classDef default rx:8,ry:8;
 ```
 
-devcontainer 안의 Python 환경이 곧 모든 호출의 출발점입니다. 같은 코드가 호스트의 Ollama로도, 클라우드 프로바이더로도 나갑니다.
+내 컴퓨터 위에서 Docker가 컨테이너들을 띄웁니다. 두 종류의 Dockerfile이 세 종류의 컨테이너를 만들고, 코드를 실행하는 컨테이너는 호스트의 Ollama(로컬)와 외부 AI 프로바이더(클라우드) 양쪽에 닿습니다. 클라우드 프로바이더만 컴퓨터 바깥에 있습니다.
 
-## 개발은 devcontainer에서, 실행은 별도 컨테이너에서
+## 개발 컨테이너와 실행 컨테이너
 
-처음에 분명히 해둘 구분이 있습니다. devcontainer는 어디까지나 개발을 위한 컨테이너입니다. 우리가 코드를 읽고, 실행해보고, 문법 오류를 확인하고, 테스트를 돌리는 작업 공간입니다. 강의 내내 들어가 있는 곳이 여기입니다.
+위 그림의 컨테이너 셋은 두 종류의 Dockerfile에서 나옵니다.
 
-실제 서비스로 출하할 때는 이 개발 컨테이너를 그대로 쓰지 않습니다. 각 단위의 코드는 그 단위에 필요한 의존성만 담은 별도의 Dockerfile로 패키징되어, 별도의 Docker 컨테이너에서 돕니다. 개발 환경과 실행 환경을 나누는 것입니다.
+- 개발 Dockerfile로 개발 컨테이너(devcontainer)와 유닛테스트 컨테이너를 만듭니다. devcontainer는 우리가 코드를 읽고 실행하고 문법을 확인하는, 강의 내내 들어가 있는 작업 공간입니다. 유닛테스트 컨테이너는 같은 개발 환경에서 테스트만 격리해 돌릴 때 씁니다.
+- 실행 Dockerfile로 실행 컨테이너를 만듭니다. 실제 서비스로 출하할 때 쓰는, 그 코드에 필요한 의존성만 담은 슬림한 이미지입니다.
 
-```mermaid
-flowchart LR
-  subgraph A["개발 — 강의 내내"]
-    DEVC["devcontainer<br/>.devcontainer/Dockerfile"]
-  end
-  subgraph B["실행 / 배포 — 단위별"]
-    RUNC["runtime 컨테이너<br/>src/section1/lecNN/Dockerfile"]
-  end
-  DEVC -->|"코드를 슬림 이미지로 패키징"| RUNC
-  classDef default rx:8,ry:8;
-```
-
-지금 단위에서 준비하는 것은 왼쪽, 개발용 devcontainer뿐입니다. 오른쪽의 runtime Dockerfile은 각 단위의 코드를 다룰 때 함께 등장합니다. 이 구분을 머리에 넣어두면 뒤에서 "왜 Dockerfile이 여러 개죠"라는 혼란이 없습니다.
+핵심은 개발 환경과 실행 환경을 나눈다는 점입니다. devcontainer는 어디까지나 개발을 위한 컨테이너일 뿐이고, 실제 서비스는 실행 Dockerfile로 만든 별도의 컨테이너에서 돕니다. 지금 단위에서 준비하는 것은 개발 컨테이너(devcontainer)뿐이며, 실행 Dockerfile은 각 단위의 코드를 다룰 때 함께 등장합니다. 이 구분을 머리에 넣어두면 뒤에서 "왜 Dockerfile이 여러 개죠"라는 혼란이 없습니다.
 
 ## 사전 준비
 
