@@ -1,0 +1,41 @@
+[project]
+name = "ai-service-engineering"
+version = "0.1.0"
+description = "AI 서비스 엔지니어링 공통 VOD — 강의 자료 및 예제 코드"
+requires-python = ">=3.13"
+dependencies = [
+    # LLM 접근 — 모든 생성 호출은 LiteLLM 단일 인터페이스를 경유한다.
+    # 프로바이더별 SDK(google-genai/openai/anthropic)는 직접 의존성으로 넣지 않는다.
+    "litellm>=1.40",
+    "instructor>=1.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0.0",
+    # 데이터 & RAG 코어
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "chromadb>=0.5",
+    # 임베딩은 LiteLLM 미경유 예외 — sentence-transformers로 HF 모델 직접 실행(CPU).
+    "sentence-transformers>=3.0",
+    # 에이전트
+    "langgraph>=0.2",
+    # 서빙
+    "fastapi>=0.110",
+    "uvicorn>=0.30",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

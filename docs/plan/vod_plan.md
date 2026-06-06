@@ -1,0 +1,207 @@
+# 공통 VOD 계획안 — AI 서비스 엔지니어링 (A·B반 선행)
+
+> **위치**
+
+본 VOD는 A반·B반 분반 이전에 **모두가 먼저 수강하는 공통 선행 교육**이다. 이후 트랙별 라이브 과정(A반: 프로젝트 선행 / B반: 교육 선행)으로 갈라진다.
+>
+
+- **대상**: AI 직무 전환을 희망하는 주니어 수준 현업 개발자 (재직 1~3년차)
+- **형식**: VOD (사전 녹화, 비동기 학습)
+- **총 분량**: 8시간 00분 / 6개 섹션 / 30개 단위
+- **단위 정책**: 한 단위 15~20분 기본, 최대 40분 이내. 더 크면 여러 단위로 분할 (한 단위 = 한 주제)
+
+---
+
+## 1. 설계 원칙
+
+본 과정은 "모델을 만드는 법"이 아니라 **"모델(들)을 조립·오케스트레이션해 신뢰성 있는 AI 서비스를 만드는 법"**에 초점을 둔다. 모델 위에 세 겹의 엔지니어링 사다리가 쌓이며, 이 사다리가 과정 전체를 관통하는 축이다.
+
+- 프롬프트 엔지니어링 — 모델에 줄 지시 (S1)
+- 컨텍스트 엔지니어링 — 모델이 무엇을 언제 보는가 (S4)
+- 하네스 엔지니어링 — 그걸 돌리는 기계 전체: 제어 루프·도구·메모리·가드레일·검증 (S4)
+
+**프로바이더 독립 원칙 (LiteLLM-first, Ollama-verified)**
+
+- 모든 **생성(LLM) 호출**은 **반드시 LiteLLM을 경유**한다. 프로바이더별 SDK 직접 호출 금지 (instructor·LangGraph·FastAPI 서빙·하네스 내부 호출 모두 LiteLLM 백엔드 사용)
+- 모든 데모는 클라우드 모델과 **Ollama 로컬 모델 양쪽에서 동작**해야 한다. 모델 교체는 문자열 하나로 끝나는 것을 원칙으로 함
+- 로컬 모델에서 품질·능력이 떨어지는 지점(특히 function calling)은 숨기지 않고 **폴백과 함께 명시**한다. 이 강등 처리 자체가 S4 하네스 엔지니어링의 실제 예제가 됨
+- **임베딩은 예외** — sentence-transformers로 HF 모델 직접 실행(소형·CPU·로컬). 무료 로컬 임베딩엔 LiteLLM의 이득(키·예산·프로바이더 교체)이 거의 없어 경유하지 않음. 클라우드 임베딩이 필요해지면 그때 LiteLLM 경유로 전환
+
+**공통 VOD가 책임지는 범위 (In scope)**
+
+- 멀티 프로바이더 LLM 접근 (LiteLLM), 프롬프트 패턴, 구조화 출력
+- 데이터 수집·정제, RAG 코어 (청킹·임베딩·벡터DB·검색 평가)
+- 에이전트 빌드 (function calling, multi-tool, LangGraph)
+- 컨텍스트·하네스 엔지니어링, 평가·검증·관찰
+- FastAPI 서빙 + 무료 클라우드 배포
+
+**트랙·프로세스로 위임 (Out of scope, 구멍 아님)**
+
+- 자유 UI (Streamlit/Gradio/Next.js), HF Spaces 배포 → 각 트랙
+- 트랙 전용 스택: pandas 심화/DuckDB/Plotly(분석), scikit-learn(추천분류), GitHub API(개발자도구), Qdrant/pgvector, n8n, LlamaIndex
+- 프로젝트 프로세스: 주제 선정·MVP 설계·중간 점검·문서화·OSS 기여·최종 발표
+
+---
+
+## 2. 실습 환경 & 스택
+
+GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
+
+| 항목 | 결정 |
+| --- | --- |
+| 개발 환경 | VSCode **devcontainer** (Reopen in Container), 전제는 Docker 설치 |
+| GPU | 불필요 (API 중심 + 임베딩은 CPU 가능) |
+| LLM 접근 | **LiteLLM** 단일 인터페이스로 멀티 프로바이더 |
+| 기본 프로바이더 | Google AI Studio (Gemini) — 무료 티어 권장 기본 |
+| 보조 프로바이더 | OpenAI Platform, Claude Platform |
+| 로컬 모델 (옵션) | Ollama — 호스트 실행 + `OLLAMA_HOST` 연결. **tool calling 지원 모델 사용**(예: Llama 3.x / Qwen2.5 계열). 미지원 모델은 LiteLLM이 JSON 모드 tool call로 폴백 |
+| 임베딩 | sentence-transformers 직접(HF) — `BAAI/bge-m3` 기본(다국어, CPU 가능), 한국어 경량 대안 `ko-sroberta`. **LiteLLM 미경유 예외** |
+| 벡터DB | Chroma (영속 모드) |
+| 구조화 출력 | Pydantic v2 + instructor |
+| 에이전트 | function calling + LangGraph |
+| 서빙 | FastAPI → 서빙용 Docker → Render / Railway |
+| 예제 도메인 | 가상 회사 "Acme" 사내 데이터 (위키/사규/계약서/문의) |
+| 패키지 | `requirements.txt` / `uv`, devcontainer 이미지에 핀 |
+
+> 각 프로바이더의 구체 모델명(Gemini/Claude/OpenAI)과 LiteLLM 기능 범위는 **녹화 시점 최신 버전으로 확정**한다. LiteLLM은 Ollama 네이티브 function calling을 지원하는 버전 이상으로 핀한다.
+>
+
+---
+
+## 3. 커리큘럼
+
+흐름: **접근(S1) → 데이터·RAG(S2) → 에이전트 빌드(S3) → 신뢰성(S4) → 서빙(S5) → 캡스톤**
+
+### S1 — LLM을 서비스로 (120분 / 9단위)
+
+멀티 프로바이더 호출과 신뢰할 수 있는 출력까지, 서비스 소비자 관점의 기본기.
+
+| 단위 | 분 | 핵심 내용 | 산출물 |
+| --- | --- | --- | --- |
+| 환경 셋업 | 12 | devcontainer Reopen in Container, 플랫폼 계정·키 발급 (Google AI Studio · OpenAI Platform · Claude Platform) | 동작하는 개발 컨테이너 |
+| LLM 멘탈 모델 | 15 | 토큰·컨텍스트 한계·비용 직관 | 개념 |
+| 샘플링 파라미터 | 10 | temperature/top_p/top_k 효과 비교 | 비교 노트북 |
+| 단일 provider 호출 | 12 | 첫 API 호출, 메시지 구조 | 호출 스니펫 |
+| 프롬프트 패턴 | 18 | system/user 구조, few-shot, 역할·출력형식 강제, 실패 교정 | 프롬프트 템플릿 |
+| LiteLLM 멀티 프로바이더 | 16 | 모델 문자열로 수렴, provider 교체 시연 | 멀티 프로바이더 래퍼 |
+| Ollama 로컬 | 12 | LiteLLM 백엔드 하나로, 호스트 연결 | 로컬 호출 예제 |
+| 구조화 출력 1 | 13 | Pydantic 스키마, 프롬프트로 JSON 받기의 함정 | Pydantic 모델 |
+| 구조화 출력 2 | 12 | instructor로 검증·재시도 | 안전한 추출 함수 |
+
+### S2 — 데이터 & RAG 코어 (110분 / 7단위)
+
+RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴.
+
+| 단위 | 분 | 핵심 내용 | 산출물 |
+| --- | --- | --- | --- |
+| 데이터 수집·정제 | 16 | CSV/웹/API 수집 + pandas 경량 정제 | 정제 스크립트 |
+| 문서 로딩 | 15 | PDF/HTML 추천 도구 1개 + 한국어 PDF 함정 | 텍스트 추출기 |
+| 청킹 | 18 | RecursiveCharacterTextSplitter, overlap, 의미 단위 | 청킹 유틸 |
+| 임베딩 | 15 | sentence-transformers(HF) `bge-m3`, 유사도 직관 | 임베딩 함수 |
+| 벡터DB Chroma | 13 | add/query, 메타데이터 필터 | Chroma 컬렉션 |
+| mini RAG | 18 | retrieval → generation → 출처 표시 (Acme 사규) | 동작 mini RAG |
+| 검색 평가 | 15 | Recall@k/MRR, 청킹·임베딩 조합 비교 | 평가 노트북 |
+
+### S3 — Agent 구성: 빌드 (102분 / 6단위)
+
+도구를 쓰는 에이전트를 "동작하게" 만드는 빌드 레이어. 모든 호출은 LiteLLM 경유이며, Ollama 로컬 실행 시 tool calling 지원 모델을 쓰고 미지원 모델은 JSON 모드로 폴백한다.
+
+| 단위 | 분 | 핵심 내용 | 산출물 |
+| --- | --- | --- | --- |
+| function calling 원리 | 20 | tool schema, 모델이 호출 결정하는 loop | 단일 tool 호출 |
+| 단일 도구 에이전트 | 15 | 한 도구로 end-to-end | 동작 에이전트 |
+| multi-tool agent | 18 | 도구 여러 개 라우팅 | 멀티툴 에이전트 |
+| LangGraph 기초 | 18 | 상태·노드·엣지 개념 | 최소 그래프 |
+| LangGraph 실전 | 20 | 분기/루프 있는 흐름 (Acme 자동화 예) | 자동화 그래프 |
+| provider-agnostic 에이전트 | 11 | LiteLLM로 백엔드 교체, Ollama tool calling + JSON 모드 폴백 | 클라우드·Ollama 양쪽 동작 |
+
+### S4 — 컨텍스트 & 하네스 엔지니어링: 신뢰성 (86분 / 5단위)
+
+"동작하는 에이전트"를 "신뢰성 있게 출하 가능한 시스템"으로 끌어올리는 레이어. 에이전트 = 모델 + 하네스.
+
+| 단위 | 분 | 핵심 내용 | 산출물 |
+| --- | --- | --- | --- |
+| 컨텍스트 엔지니어링 | 18 | 윈도우에 무엇을 언제 넣나, retrieval/메모리/compaction | 컨텍스트 조립 패턴 |
+| 하네스 엔지니어링: 모델 + 하네스 | 18 | 제어 루프, 도구 인터페이스 설계, 능력 감지·우아한 강등(로컬 모델 폴백), "실패는 시스템 문제" | 최소 하네스 |
+| 메모리·상태·가드레일 | 16 | 세션 간 상태 지속, 허용 행동 제약, 출력 검증·PII | 상태/가드 모듈 |
+| 프롬프트 주입 방어 | 12 | 직접·간접 주입, 도구 결과 오염, 방어 패턴 | 방어 체크리스트 |
+| 평가·검증·관찰 | 22 | LLM-as-judge, 트레이싱, 테스트셋·품질·개선 로그·한계 분석 | 평가 하네스 |
+
+### S5 — 서빙 & 배포 (40분 / 2단위)
+
+맛보기 수준. 본격 서빙은 트랙·모듈에서 심화한다.
+
+| 단위 | 분 | 핵심 내용 | 산출물 |
+| --- | --- | --- | --- |
+| FastAPI 서빙 + 스트리밍 | 25 | lifespan, /generate, 입력검증·에러처리, StreamingResponse | 추론 API 서버 |
+| 서빙 Docker + 배포 | 15 | 개발 devcontainer와 차이 명시 → Render/Railway 출하 | 배포 가능한 이미지 |
+
+### 캡스톤 (22분 / 1단위)
+
+| 단위 | 분 | 핵심 내용 | 산출물 |
+| --- | --- | --- | --- |
+| end-to-end 미니 데모 | 22 | RAG + 에이전트 + 하네스 + API를 하나로 잇기 | 통합 데모 레포 |
+
+**합계: 480분 (8시간 00분) / 30단위**
+
+| 섹션 | 분 | 단위 |
+| --- | --- | --- |
+| S1 LLM을 서비스로 | 120 | 9 |
+| S2 데이터 & RAG 코어 | 110 | 7 |
+| S3 Agent 빌드 | 102 | 6 |
+| S4 컨텍스트 & 하네스 (신뢰성) | 86 | 5 |
+| S5 서빙 & 배포 | 40 | 2 |
+| 캡스톤 | 22 | 1 |
+| **합계** | **480** | **30** |
+
+---
+
+## 4. 마스터 문서 커버리지
+
+"풀스택_커리큘럼_운영.md"의 공통 기술 요소 대비 매핑.
+
+| 마스터 요소 | 본 VOD 위치 |
+| --- | --- |
+| LLM/프롬프트, structured output | S1 |
+| Ollama·OpenAI·Claude·Gemini 연계 | S1 (LiteLLM) |
+| 데이터 수집·정제 (CSV/웹/API, pandas) | S2 |
+| 임베딩·벡터DB, RAG 기본 | S2 |
+| LLM/RAG/**Agent** 적용, LangGraph | S3 |
+| 검증 능력 (테스트셋·오류·개선 로그·한계) | S4 평가·검증·관찰 |
+| 배포 안정성 | S4 신뢰성 레이어 + S5 |
+| API 구현 (FastAPI), 무료 클라우드 배포 | S5 |
+| Docker 재현 환경 | S1 devcontainer + S5 서빙 Docker |
+
+**VOD가 마스터 문서보다 더 주는 것**
+
+- LiteLLM 단일 추상화 ("4종 연계"를 모델 문자열 교체로 압축)
+- instructor 기반 구조화 출력
+- 컨텍스트·하네스 엔지니어링 (2026 표준 용어, 신뢰성 레이어)
+
+---
+
+## 5. 부록
+
+**사전 제작 필요 자료**
+
+- Acme 가상 데이터: 사규 PDF 50~100쪽, 위키 HTML 20~30페이지, 계약서 5~10건, 고객 문의 100건
+- 표준 `requirements.txt` (devcontainer 핀 버전)
+- 다이어그램: 엔지니어링 사다리(프롬프트→컨텍스트→하네스), 에이전트=모델+하네스, RAG 파이프라인
+
+**코드 저장소 구조 (`common-edu-examples`)**
+
+- `s1`~`s5`·`capstone` 폴더별 실습 스크립트
+- `data/` Acme 가상 데이터
+- `.devcontainer/`, `requirements.txt`, `README.md`
+
+**클립 단위 가이드**
+
+- 한 단위 15~20분, 최대 40분, 시작/끝 짧은 안내 한 줄
+- 한 단위 = 한 주제 원칙, 커지면 분할
+- **수용 기준 (모든 단위 공통)**: 데모는 LiteLLM 경유로 작성하고, 클라우드 모델과 Ollama 로컬 모델 양쪽에서 실행 확인. 로컬에서 품질·능력 저하 지점은 폴백 또는 한계 메모를 남김
+
+**제작 시 확정 항목**
+
+- 각 프로바이더 최신 모델명, LiteLLM 기능 범위
+- Ollama 호스트 연결 방식(`OLLAMA_HOST`) 최종 점검
+- Ollama tool calling 지원 모델 선정 + JSON 모드 폴백 동작 검증
