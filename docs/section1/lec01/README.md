@@ -44,6 +44,28 @@ flowchart TB
 
 핵심은 개발 환경과 실행 환경을 나눈다는 점입니다. devcontainer는 어디까지나 개발을 위한 컨테이너일 뿐이고, 실제 서비스는 실행 Dockerfile로 만든 별도의 컨테이너에서 돕니다. 지금 단위에서 준비하는 것은 개발 컨테이너(devcontainer)뿐이며, 실행 Dockerfile은 각 단위의 코드를 다룰 때 함께 등장합니다. 이 구분을 머리에 넣어두면 뒤에서 "왜 Dockerfile이 여러 개죠"라는 혼란이 없습니다.
 
+실행 컨테이너도 출하된 뒤에는 같은 방식으로 모델을 부릅니다. 호출하는 코드는 dev에서 보던 것과 같고, 들어가는 컨테이너만 바뀝니다.
+
+```mermaid
+flowchart TB
+  subgraph ENVB["실행 환경 (내 컴퓨터 또는 서버)"]
+    subgraph DOCKER2["Docker"]
+      RUN["실행 컨테이너<br/>배포용 슬림 이미지"]
+    end
+    OLL2["Ollama · 로컬 모델<br/>gemma4:12b-mxfp8"]
+  end
+  EXT2["외부 AI 프로바이더 · 클라우드<br/>Gemini · OpenAI · Claude"]
+
+  RUN -.->|"로컬 호출"| OLL2
+  RUN -.->|"클라우드 호출"| EXT2
+
+  classDef default rx:8,ry:8;
+  classDef ship fill:#eafaef,stroke:#3a9a5c;
+  class RUN ship;
+```
+
+dev 컨테이너에서 보던 호출 구조가 그대로 실행 컨테이너로 옮겨온 모습입니다. LiteLLM을 거치므로 백엔드 선택은 여전히 모델 문자열 하나로 끝납니다. 배포 환경에 로컬 Ollama가 없으면 클라우드 프로바이더만 부르게 됩니다.
+
 ## 사전 준비
 
 다음 세 가지는 호스트(여러분의 실제 OS)에 설치되어 있어야 합니다.
