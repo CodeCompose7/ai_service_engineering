@@ -98,11 +98,50 @@ flowchart TB
 
 이 환경 설정의 실제 파일은 [.devcontainer/devcontainer.json](../../../.devcontainer/devcontainer.json)과 [.devcontainer/Dockerfile](../../../.devcontainer/Dockerfile)에 있습니다. 한 번 열어보면 무엇이 고정되는지 감이 잡힙니다.
 
-## Ollama 설치와 모델 받기
+## 모델 프로바이더 준비 — 넷 중 하나 이상
 
-이 과정의 모든 데모는 클라우드 모델과 로컬 Ollama 모델 양쪽에서 도는 것을 원칙으로 합니다. 로컬 모델은 키가 필요 없어 가장 먼저 연결을 확인하기에 좋습니다.
+LLM을 부르려면 다음 네 가지 중 적어도 하나가 준비되어 있어야 합니다. 모두 LiteLLM을 거치므로, 무엇을 고르든 호출 코드는 같고 모델 문자열만 달라집니다.
 
-Ollama는 컨테이너 안이 아니라 호스트에 설치합니다. <https://ollama.com> 에서 각 OS용 설치본을 받아 설치하면 백그라운드 서비스로 11434 포트에서 돕니다. 설치 후 이 과정에서 쓸 모델을 받습니다.
+| 프로바이더 | 종류 | 비용 | 준비물 |
+| --- | --- | --- | --- |
+| Google AI Studio (Gemini) | 클라우드 | 무료 티어 | API 키 |
+| OpenAI Platform | 클라우드 | 유료 | API 키 |
+| Claude Platform | 클라우드 | 유료 | API 키 |
+| Ollama | 로컬 | 무료 | 호스트 설치 + 모델 |
+
+가장 빠르게 시작하려면 무료인 둘, 즉 Gemini(클라우드)나 Ollama(로컬) 중 하나를 권장합니다. 다만 이 과정의 데모는 클라우드와 로컬 양쪽에서 도는 것을 원칙으로 하므로, 여유가 되면 클라우드 하나와 Ollama를 함께 준비해 두는 편이 좋습니다.
+
+```mermaid
+flowchart TB
+  START["LLM 호출"] --> Q{"넷 중 무엇을 쓸까"}
+  Q -->|"무료·클라우드"| G["Gemini 키 발급"]
+  Q -->|"유료·클라우드"| O["OpenAI / Claude 키 발급"]
+  Q -->|"무료·로컬"| L["Ollama 설치 + 모델"]
+  G --> ENVF[".env에 키 입력"]
+  O --> ENVF
+  classDef default rx:8,ry:8;
+```
+
+### 클라우드 프로바이더 — 키 발급
+
+클라우드 모델은 키가 필요합니다. 키는 개인 비밀이라 저장소로 공유되지 않으므로 직접 발급해 넣습니다. 클라우드를 쓴다면 아래에서 하나 이상 발급합니다.
+
+- Google AI Studio: <https://aistudio.google.com/api-keys> 에서 발급합니다. 무료 티어로 강의 전체를 진행할 수 있어 가장 권장합니다.
+- OpenAI Platform: <https://platform.openai.com/api-keys> 에서 발급합니다. 유료입니다.
+- Claude Platform: <https://console.anthropic.com/settings/keys> 에서 발급합니다. 유료입니다.
+
+발급한 키는 저장소 루트에 `.env`를 만들어 채웁니다. 이 파일은 gitignore되어 있어 커밋되지 않습니다.
+
+```bash
+cp .env.sample .env
+# .env를 열어 사용할 프로바이더의 키를 채웁니다. 예: GEMINI_API_KEY=...
+```
+
+각 플랫폼의 콘솔 화면과 무료 한도는 시점에 따라 바뀌므로, 막히는 부분은 강의 영상의 화면을 따라가시기 바랍니다.
+
+### 로컬 모델 — Ollama
+
+Ollama는 키 없이 무료로 도는 로컬 모델입니다. 컨테이너 안이 아니라 호스트에 설치합니다. <https://ollama.com> 에서 각 OS용 설치본을 받아 설치하면 백그라운드 서비스로 11434 포트에서 돕니다. 설치 후 이 과정에서 쓸 모델을 받습니다.
 
 ```bash
 # 호스트에서
@@ -111,44 +150,24 @@ ollama list                       # 받은 모델 확인
 ollama run gemma4:12b-mxfp8 "안녕"  # 한 번 직접 호출해 응답이 오는지 확인
 ```
 
-`ollama run`에서 답이 돌아오면 호스트의 Ollama는 정상입니다. devcontainer 안에서는 호스트의 11434 포트에 `host.docker.internal` 주소로 닿습니다. devcontainer 설정에 `--add-host=host.docker.internal:host-gateway`가 들어 있어 Linux 호스트에서도 동작합니다.
+`ollama run`에서 답이 돌아오면 호스트의 Ollama는 정상입니다. devcontainer 안에서는 `host.docker.internal` 주소로 호스트의 11434 포트에 닿습니다. devcontainer 설정에 `--add-host=host.docker.internal:host-gateway`가 들어 있어 Linux 호스트에서도 동작합니다. 모델은 받는 데 시간이 걸리므로 로컬을 쓸 계획이면 지금 미리 받아둡니다.
 
 ## 첫 실행으로 연결 확인
 
-환경이 맞춰졌는지 공유된 예제 하나를 실행해 확인합니다. 이 예제는 로컬 Ollama를 부르므로 키 없이 바로 돕니다.
+준비한 프로바이더로 공유된 예제 하나를 실행해 환경을 확인합니다.
 
 ```bash
 # devcontainer 터미널에서
 uv run python src/section1/lec01/smoke_test.py
 ```
 
-Ollama의 응답이 출력되면 devcontainer와 uv 환경, 호스트 Ollama 연결까지 한 번에 확인된 것입니다. 코드를 직접 입력할 필요 없이, 받은 코드를 실행만 했다는 점에 주목합니다. 이것이 앞으로의 기본 흐름입니다.
-
-## 클라우드 키 준비
-
-클라우드 모델은 키가 필요합니다. 키는 개인 비밀이라 저장소로 공유되지 않으므로, 직접 발급해 넣어야 합니다. 이 과정에서 여러분이 손으로 채우는 몇 안 되는 부분 중 하나입니다.
-
-기본 프로바이더는 Google AI Studio의 Gemini이고 무료 티어로 충분합니다. OpenAI와 Claude는 프로바이더 교체를 보일 때 쓰는 보조라 없어도 진행에 지장이 없습니다.
-
-- Google AI Studio: <https://aistudio.google.com/api-keys> 에서 키를 발급합니다. 필수입니다.
-- OpenAI Platform: <https://platform.openai.com/api-keys> 에서 발급합니다. 선택입니다.
-- Claude Platform: <https://console.anthropic.com/settings/keys> 에서 발급합니다. 선택입니다.
-
-발급한 키는 저장소 루트에 `.env`를 만들어 채웁니다. 이 파일은 gitignore되어 있어 커밋되지 않습니다.
-
-```bash
-cp .env.sample .env
-# .env를 열어 GEMINI_API_KEY= 뒤에 발급받은 키를 채웁니다.
-```
-
-키가 들어가면 다음 단위부터 클라우드 모델도 같은 코드로 부를 수 있습니다. 키 발급이 늦어지면 우선 Ollama만으로 진행해도 됩니다.
+예제는 사용 가능한 프로바이더를 골라 호출합니다. Ollama를 준비했다면 키 없이 로컬로, 클라우드 키를 넣었다면 그 모델로 응답이 나옵니다. 응답이 출력되면 devcontainer와 uv 환경, 그리고 고른 프로바이더 연결까지 한 번에 확인된 것입니다. 코드를 직접 입력하지 않고 받은 코드를 실행만 했다는 점에 주목합니다. 이것이 앞으로의 기본 흐름입니다.
 
 ## 확인 체크리스트
 
 - "Reopen in Container"가 성공했고 터미널에서 `python --version`이 3.13으로 나옵니다.
-- 호스트에서 `ollama run`이 응답합니다.
-- `uv run python src/section1/lec01/smoke_test.py`가 Ollama의 답을 출력합니다.
-- (선택) `.env`에 `GEMINI_API_KEY`를 채워 클라우드도 쓸 준비가 됐습니다.
+- 네 프로바이더 중 적어도 하나가 준비됐습니다. 클라우드 키를 `.env`에 넣었거나, 호스트에서 `ollama run`이 응답하면 됩니다.
+- `uv run python src/section1/lec01/smoke_test.py`가 응답을 출력합니다.
 
 여기까지 되면 다음 단위로 넘어갈 준비가 끝났습니다.
 
