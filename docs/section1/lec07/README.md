@@ -23,7 +23,7 @@
 ```mermaid
 flowchart TD
   subgraph DEV["devcontainer"]
-    CODE["호출 코드"] --> LL["LiteLLM<br/>ollama/gemma4:12b-mxfp8"]
+    CODE["호출 코드"] --> LL["LiteLLM<br/>ollama/gemma4:12b"]
   end
   LL -->|"host.docker.internal:11434"| OL["호스트의 Ollama"]
   OL --> Q{"tool calling 지원?"}

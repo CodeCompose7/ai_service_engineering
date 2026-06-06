@@ -51,7 +51,7 @@ for model in ["gemini/gemini-2.0-flash", "openai/gpt-4o-mini", "anthropic/claude
 | `gemini/` | `GEMINI_API_KEY` | `gemini/gemini-2.0-flash` |
 | `openai/` | `OPENAI_API_KEY` | `openai/gpt-4o-mini` |
 | `anthropic/` | `ANTHROPIC_API_KEY` | `anthropic/claude-3-5-haiku-latest` |
-| `ollama/` | (로컬 실행이라 키 불필요) | `ollama/gemma4:12b-mxfp8` |
+| `ollama/` | (로컬 실행이라 키 불필요) | `ollama/gemma4:12b` |
 
 lec01에서 `.env`에 채워둔 키가 `load_dotenv()`로 환경변수에 올라가 있으면, 우리는 키를 코드에 넘기지 않아도 됩니다. 모델 문자열만 바꾸면 LiteLLM이 그에 맞는 키를 골라 씁니다.
 
@@ -136,7 +136,7 @@ uv run python src/section1/lec06/provider_swap.py
 
 예제의 모델 문자열 목록을 직접 바꿔봅니다. 코드의 다른 부분은 전혀 손대지 않고 모델만 갈아끼우는 경험을 합니다.
 
-- 줄 하나를 `ollama/gemma4:12b-mxfp8`로 바꿔 로컬 모델을 끼워 넣습니다.
+- 줄 하나를 `ollama/gemma4:12b`로 바꿔 로컬 모델을 끼워 넣습니다.
 - 보조 프로바이더를 빼보면서 키 유무에 따라 동작이 어떻게 달라지는지 봅니다.
 - 같은 작업에 어떤 모델이 토큰 대비 괜찮은지 출력으로 비교해봅니다.
 
