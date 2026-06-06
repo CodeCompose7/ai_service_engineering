@@ -12,21 +12,28 @@
 flowchart TB
   subgraph COMP["내 컴퓨터 (호스트)"]
     subgraph DOCKER["Docker"]
-      DF1["개발 Dockerfile"] --> DEV["dev 컨테이너"]
-      DF1 --> TEST["유닛테스트 컨테이너"]
-      DF2["실행 Dockerfile"] --> RUN["실행 컨테이너"]
+      DF1["개발 Dockerfile<br/>(설계도)"]
+      DF2["실행 Dockerfile<br/>(설계도)"]
+      DEV["dev 컨테이너<br/>강의 내내 작업하는 곳"]
+      TEST["유닛테스트 컨테이너<br/>테스트만 격리 실행"]
+      RUN["실행 컨테이너<br/>배포용 슬림 이미지"]
+      DF1 ==>|"빌드"| DEV
+      DF1 ==>|"빌드"| TEST
+      DF2 ==>|"빌드"| RUN
     end
-    OLL["Ollama<br/>gemma4:12b-mxfp8"]
+    OLL["Ollama · 로컬 모델<br/>gemma4:12b-mxfp8"]
   end
-  EXT["외부 AI 프로바이더<br/>Gemini · OpenAI · Claude"]
-  DEV -. "host.docker.internal" .-> OLL
-  RUN -. "host.docker.internal" .-> OLL
-  DEV -. "API 호출" .-> EXT
-  RUN -. "API 호출" .-> EXT
+  EXT["외부 AI 프로바이더 · 클라우드<br/>Gemini · OpenAI · Claude"]
+
+  DEV -.->|"로컬 호출"| OLL
+  DEV -.->|"클라우드 호출"| EXT
+
   classDef default rx:8,ry:8;
+  classDef work fill:#eaf2ff,stroke:#4a78c0;
+  class DEV work;
 ```
 
-내 컴퓨터 위에서 Docker가 컨테이너들을 띄웁니다. 두 종류의 Dockerfile이 세 종류의 컨테이너를 만들고, 코드를 실행하는 컨테이너는 호스트의 Ollama(로컬)와 외부 AI 프로바이더(클라우드) 양쪽에 닿습니다. 클라우드 프로바이더만 컴퓨터 바깥에 있습니다.
+그림은 두 가지 흐름으로 읽습니다. 굵은 화살표는 Dockerfile이라는 설계도로 컨테이너를 찍어내는 빌드 흐름이고, 점선은 컨테이너가 모델을 호출하는 흐름입니다. 우리가 강의 내내 실제로 들어가 작업하는 곳은 파란색으로 강조한 dev 컨테이너입니다. 이 컨테이너가 호스트의 Ollama(로컬)와 외부 프로바이더(클라우드)를 모두 부릅니다. 실행 컨테이너도 출하 뒤 같은 방식으로 모델을 부르며, 클라우드 프로바이더만 내 컴퓨터 바깥에 있습니다.
 
 ## 개발 컨테이너와 실행 컨테이너
 
