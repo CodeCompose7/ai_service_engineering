@@ -24,6 +24,14 @@ CLOUD_KEY_ENV = {
     "anthropic": "ANTHROPIC_API_KEY",
 }
 
+# 두 스모크 테스트가 같은 프롬프트로 호출한다.
+GREETING_PROMPT = "한 문장으로 자기소개를 해줘."
+
+# 준비된 프로바이더가 하나도 없을 때 안내 문구.
+NO_PROVIDER_MSG = (
+    "준비된 프로바이더가 없습니다. .env에 키를 넣거나 Ollama를 띄운 뒤 다시 실행하세요."
+)
+
 
 def available_providers(env: dict | None = None) -> list[str]:
     """환경에서 준비된 것으로 보이는 프로바이더 목록을 돌려준다.
@@ -53,31 +61,49 @@ def model_and_kwargs(provider: str, env: dict | None = None) -> tuple[str, dict]
     return DEFAULT_MODELS[provider], {}
 
 
-def main() -> int:
+def prepared_order() -> list[str]:
+    """`.env`를 로드하고 DEFAULT_PROVIDER를 앞세운 시도 순서를 만든다.
+
+    준비된 프로바이더가 하나도 없으면 빈 목록을 돌려준다.
+    """
     from dotenv import load_dotenv
 
     load_dotenv()
-
     default = os.environ.get("DEFAULT_PROVIDER")
-    order = provider_order(default, available_providers())
+    return provider_order(default, available_providers())
 
-    if not order:
-        print("준비된 프로바이더가 없습니다. .env에 키를 넣거나 Ollama를 띄운 뒤 다시 실행하세요.")
-        return 1
 
+def complete(model: str, messages: list[dict], kwargs: dict | None = None):
+    """LiteLLM을 한 번 호출해 (본문, 예외)를 돌려준다.
+
+    성공이면 (응답 본문, None), 실패면 (None, 예외)이다. 호출 측이 성패에 따라
+    출력 형식을 정할 수 있도록 예외를 삼키지 않고 그대로 넘긴다.
+    """
     # LiteLLM은 무거운 의존성이라 실제 호출 직전에 import 한다.
     import litellm
 
-    messages = [{"role": "user", "content": "한 문장으로 자기소개를 해줘."}]
+    try:
+        resp = litellm.completion(model=model, messages=messages, **(kwargs or {}))
+    except Exception as exc:
+        return None, exc
+    return resp.choices[0].message.content, None
+
+
+def main() -> int:
+    order = prepared_order()
+    if not order:
+        print(NO_PROVIDER_MSG)
+        return 1
+
+    messages = [{"role": "user", "content": GREETING_PROMPT}]
     for provider in order:
         model, kwargs = model_and_kwargs(provider)
         print(f"[{provider}] {model} 시도 중...")
-        try:
-            resp = litellm.completion(model=model, messages=messages, **kwargs)
-        except Exception as exc:
+        content, exc = complete(model, messages, kwargs)
+        if exc is not None:
             print(f"  실패: {type(exc).__name__} — 다음 프로바이더로 넘어갑니다")
             continue
-        print(resp.choices[0].message.content)
+        print(content)
         print(f"\n성공: {provider} / {model}")
         return 0
 
