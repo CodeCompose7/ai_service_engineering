@@ -507,7 +507,3 @@ uv run python src/section1/lec01/smoke_test_2.py
 - `uv run python src/section1/lec01/smoke_test.py`가 응답을 출력합니다.
 
 여기까지 되면 다음 단위로 넘어갈 준비가 끝났습니다.
-
-## 8. 다음 단위
-
-[lec02 — LLM 멘탈 모델](../lec02/README.md)에서 호출에 앞서 LLM을 어떻게 바라봐야 하는지 정리합니다.

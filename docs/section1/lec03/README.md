@@ -124,7 +124,3 @@ uv run python src/section1/lec03/sampling_compare.py
 - 샘플링 파라미터는 다음 토큰을 고르는 방식을 조절하는 손잡이입니다.
 - temperature는 분포의 날카로움, top_p는 누적 확률 컷, top_k는 개수 컷입니다.
 - 정답이 분명한 작업은 낮은 무작위성, 다양성이 가치인 작업은 높은 무작위성으로 시작합니다.
-
-## 다음 단위
-
-[lec04 — 단일 provider 호출](../lec04/README.md)에서 드디어 첫 API 호출을 LiteLLM으로 보냅니다.

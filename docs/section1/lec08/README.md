@@ -133,9 +133,3 @@ uv run python src/section1/lec08/json_traps.py
 - 원하는 구조는 Pydantic 모델로 선언해 출력 계약으로 삼습니다.
 - 프롬프트만으로 JSON을 받으면 파싱이 깨지거나 값이 계약을 어기는 실패가 잦고, 로컬 모델에서 더 심합니다.
 - 이 가드와 재시도를 매번 손으로 짜는 대신 다음 단위에서 도구로 해결합니다.
-
-## 다음 단위
-
-[lec09 — 구조화 출력 2](../lec09/README.md)에서 instructor로 검증과 재시도를 한 번에 처리합니다.
-</content>
-</invoke>

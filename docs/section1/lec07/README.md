@@ -146,7 +146,3 @@ uv run python src/section1/lec07/local_call.py
 - LiteLLM에서 `ollama/<모델>` 문자열과 `api_base`만 주면 클라우드와 같은 코드로 호출됩니다.
 - function calling 같은 기능은 로컬에서 폴백으로 우회하며 덜 안정적이고, 그 처리는 S4로 이어집니다.
 - 로컬의 품질·기능 저하는 한계 메모로 남겨 판단 근거로 삼습니다.
-
-## 다음 단위
-
-[lec08 — 구조화 출력 1](../lec08/README.md)에서 자연어 응답을 프로그램이 믿고 쓸 데이터로 바꾸는 일의 어려움부터 봅니다.
