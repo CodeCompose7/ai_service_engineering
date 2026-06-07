@@ -9,6 +9,8 @@ from section1.lec06.provider_swap import (
     available_providers,
     model_for,
     provider_models,
+    provider_of,
+    safe_kwargs,
 )
 
 
@@ -57,3 +59,18 @@ def test_provider_models_pairs_each_provider_with_model_string():
 
 def test_default_model_is_a_provider_prefixed_string():
     assert DEFAULT_MODEL.startswith("gemini/")
+
+
+def test_provider_of_reads_prefix():
+    assert provider_of("openai/gpt-4o-mini") == "openai"
+    assert provider_of("ollama/gemma4:12b") == "ollama"
+
+
+def test_safe_kwargs_drops_top_k_for_openai():
+    kwargs = safe_kwargs("openai/gpt-4o-mini", {"top_k": 5, "temperature": 0.2})
+    assert kwargs == {"temperature": 0.2}
+
+
+def test_safe_kwargs_keeps_top_k_for_others():
+    kwargs = safe_kwargs("gemini/gemini-2.5-flash", {"top_k": 5})
+    assert kwargs == {"top_k": 5}
