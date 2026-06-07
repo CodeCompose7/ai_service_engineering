@@ -66,6 +66,25 @@ flowchart TB
   class DEV work;
 ```
 
+이 컨테이너의 설계도가 [.devcontainer/Dockerfile](../../../.devcontainer/Dockerfile)입니다. 도구는 깔되 코드는 굽지 않는 것이 특징입니다.
+
+```dockerfile
+# .devcontainer/Dockerfile — 개발용
+FROM python:3.13-slim
+
+# 개발에 필요한 도구까지 설치한다 (git, 빌드 도구, uv)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git curl ca-certificates build-essential \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+WORKDIR /workspace
+# 코드를 COPY하지 않는다. devcontainer.json이 호스트 저장소를 /workspace에 마운트하고,
+# 컨테이너 생성 뒤 postCreateCommand의 `uv sync`가 의존성을 깐다.
+```
+
+코드를 이미지에 넣지 않고 호스트 저장소를 그대로 마운트하므로, 파일을 고치면 컨테이너 안에 즉시 반영됩니다. 다시 빌드할 필요가 없습니다.
+
 ### 실행 컨테이너
 
 실제 서비스로 출하할 때 쓰는, 그 코드에 필요한 의존성만 담은 슬림한 이미지입니다. 출하된 뒤에도 같은 방식으로 모델을 부릅니다. 그림은 위와 똑같고 강조되는 컨테이너만 dev에서 실행 컨테이너로 바뀝니다. 호출하는 코드도 dev에서 보던 것과 같습니다.
@@ -100,7 +119,36 @@ flowchart TB
   class RUNb ship;
 ```
 
-LiteLLM을 거치므로 백엔드 선택은 여전히 모델 문자열 하나로 끝납니다. 배포 환경에 로컬 Ollama가 없으면 클라우드 프로바이더만 부르게 됩니다.
+실행 컨테이너의 Dockerfile은 반대로, 코드를 이미지 안에 복사해 자기완결적으로 만듭니다. 아래는 예시이며, 실제 파일은 각 단위의 코드와 함께 추가됩니다.
+
+```dockerfile
+# src/section1/lecNN/Dockerfile — 실행용 (예시)
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 그 코드에 필요한 런타임 의존성만 설치한다 (개발 도구는 넣지 않는다)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 코드를 이미지 안으로 복사한다. 호스트 없이도 이 이미지 하나로 돈다
+COPY . .
+CMD ["python", "main.py"]
+```
+
+호스트 저장소에 의존하지 않으므로 어디서든 이 이미지 하나로 돌릴 수 있고, 그래서 배포에 적합합니다. LiteLLM을 거치므로 백엔드 선택은 여전히 모델 문자열 하나로 끝납니다. 배포 환경에 로컬 Ollama가 없으면 클라우드 프로바이더만 부르게 됩니다.
+
+### 두 Dockerfile의 차이
+
+설치하는 베이스나 파이썬은 비슷하지만, 코드를 다루는 방식과 무게가 다릅니다.
+
+| 항목 | 개발 컨테이너 (`.devcontainer/Dockerfile`) | 실행 컨테이너 (`lecNN/Dockerfile`) |
+| --- | --- | --- |
+| 코드 | 호스트 저장소를 마운트, 편집 즉시 반영 | 이미지에 복사(COPY), 자기완결 |
+| 의존성 | 개발 도구까지 포함 (git·빌드 도구·uv) | 그 코드에 필요한 런타임만, 슬림 |
+| 실행 | 사람이 들어가 작업하고 `uv sync`로 구성 | `CMD`로 앱을 바로 실행 |
+| 코드 변경 시 | 마운트라 리빌드 불필요 | 다시 빌드해 출하 |
+| 목적 | 개발·실습 | 배포 |
 
 ## 컨테이너 열기
 
