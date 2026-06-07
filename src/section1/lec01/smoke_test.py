@@ -14,7 +14,7 @@ import os
 DEFAULT_MODELS = {
     "gemini": "gemini/gemini-2.5-flash",
     "openai": "openai/gpt-4o-mini",
-    "anthropic": "anthropic/claude-3-5-haiku-latest",
+    "anthropic": "anthropic/claude-haiku-4-5",
 }
 
 # 클라우드 프로바이더가 읽는 API 키 환경변수 이름.

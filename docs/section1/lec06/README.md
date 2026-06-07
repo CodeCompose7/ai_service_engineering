@@ -37,7 +37,7 @@ import litellm
 
 messages = [{"role": "user", "content": "LiteLLM을 한 문장으로 설명해줘."}]
 
-for model in ["gemini/gemini-2.5-flash", "openai/gpt-4o-mini", "anthropic/claude-3-5-haiku-latest"]:
+for model in ["gemini/gemini-2.5-flash", "openai/gpt-4o-mini", "anthropic/claude-haiku-4-5"]:
     resp = litellm.completion(model=model, messages=messages)
     print(model, "->", resp.choices[0].message.content)
 ```
@@ -52,7 +52,7 @@ for model in ["gemini/gemini-2.5-flash", "openai/gpt-4o-mini", "anthropic/claude
 | --- | --- | --- |
 | `gemini/` | `GEMINI_API_KEY` | `gemini/gemini-2.5-flash` |
 | `openai/` | `OPENAI_API_KEY` | `openai/gpt-4o-mini` |
-| `anthropic/` | `ANTHROPIC_API_KEY` | `anthropic/claude-3-5-haiku-latest` |
+| `anthropic/` | `ANTHROPIC_API_KEY` | `anthropic/claude-haiku-4-5` |
 | `ollama/` | (로컬 실행이라 키 불필요) | `ollama/gemma4:12b` |
 
 lec01에서 `.env`에 채워둔 키가 `load_dotenv()`로 환경변수에 올라가 있으면, 우리는 키를 코드에 넘기지 않아도 됩니다. 모델 문자열만 바꾸면 LiteLLM이 그에 맞는 키를 골라 씁니다.
