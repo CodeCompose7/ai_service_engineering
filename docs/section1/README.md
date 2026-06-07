@@ -40,7 +40,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | [lec01](lec01/README.md) | 12 | 환경 셋업 | 동작하는 개발 컨테이너 |
 | [lec02](lec02/README.md) | 15 | LLM 멘탈 모델 | 개념 |
-| [lec03](lec03/README.md) | 10 | 샘플링 파라미터 | 비교 노트북 |
+| [lec03](lec03/README.md) | 10 | 샘플링 파라미터 | 비교 스크립트 |
 | [lec04](lec04/README.md) | 12 | 단일 provider 호출 | 호출 스니펫 |
 | [lec05](lec05/README.md) | 18 | 프롬프트 패턴 | 프롬프트 템플릿 |
 | [lec06](lec06/README.md) | 16 | LiteLLM 멀티 프로바이더 | 멀티 프로바이더 래퍼 |

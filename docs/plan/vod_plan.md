@@ -81,7 +81,7 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | --- | --- | --- | --- |
 | 환경 셋업 | 12 | devcontainer Reopen in Container, 네 프로바이더 중 하나 이상 준비 (Gemini·OpenAI·Claude 키 또는 로컬 Ollama), `DEFAULT_PROVIDER` 설정, 첫 예제 실행 확인. 설치·빌드 대기는 편집 컷 | 동작하는 개발 컨테이너 |
 | LLM 멘탈 모델 | 15 | 토큰·컨텍스트 한계·비용 직관 | 개념 |
-| 샘플링 파라미터 | 10 | temperature/top_p/top_k 효과 비교 | 비교 노트북 |
+| 샘플링 파라미터 | 10 | temperature/top_p/top_k 효과 비교 | 비교 스크립트 |
 | 단일 provider 호출 | 12 | 첫 API 호출, 메시지 구조 | 호출 스니펫 |
 | 프롬프트 패턴 | 18 | system/user 구조, few-shot, 역할·출력형식 강제, 실패 교정 | 프롬프트 템플릿 |
 | LiteLLM 멀티 프로바이더 | 16 | 모델 문자열로 수렴, provider 교체 시연 | 멀티 프로바이더 래퍼 |
