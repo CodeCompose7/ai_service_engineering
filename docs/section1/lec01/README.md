@@ -136,6 +136,7 @@ flowchart TB
   G --> GE[".env에 키 입력"]
   O --> OE[".env에 키 입력"]
   C --> CE[".env에 키 입력"]
+  L --> LE[".env에 설정 입력<br/>OLLAMA_API_BASE / OLLAMA_MODEL"]
   classDef default rx:8,ry:8;
 ```
 
@@ -167,7 +168,17 @@ ollama list                       # 받은 모델 확인
 ollama run gemma4:12b "안녕"  # 한 번 직접 호출해 응답이 오는지 확인
 ```
 
-`ollama run`에서 답이 돌아오면 호스트의 Ollama는 정상입니다. devcontainer 안에서는 `host.docker.internal` 주소로 호스트의 11434 포트에 닿습니다. devcontainer 설정에 `--add-host=host.docker.internal:host-gateway`가 들어 있어 Linux 호스트에서도 동작합니다. 모델은 받는 데 시간이 걸리므로 로컬을 쓸 계획이면 지금 미리 받아둡니다.
+`ollama run`에서 답이 돌아오면 호스트의 Ollama는 정상입니다. devcontainer 안에서는 `host.docker.internal` 주소로 호스트의 11434 포트에 닿습니다. devcontainer 설정에 `--add-host=host.docker.internal:host-gateway`가 들어 있어 Linux 호스트에서도 동작합니다.
+
+클라우드와 마찬가지로 로컬도 `.env`에 설정을 넣습니다. 키는 없지만 주소와 모델 이름이 필요합니다.
+
+```bash
+# .env
+OLLAMA_API_BASE=http://host.docker.internal:11434   # 위 주소가 기본값
+OLLAMA_MODEL=gemma4:12b                              # 방금 받은 모델 이름과 같게
+```
+
+모델은 받는 데 시간이 걸리므로 로컬을 쓸 계획이면 지금 미리 받아둡니다.
 
 ## 첫 실행으로 연결 확인
 
