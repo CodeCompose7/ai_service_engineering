@@ -14,21 +14,24 @@
 ```mermaid
 flowchart TB
   subgraph COMP["내 컴퓨터 (호스트)"]
-    subgraph DOCKER["Docker"]
+    subgraph REPO["프로젝트 파일 (저장소)"]
       DF1["개발 Dockerfile<br/>(설계도)"]
       DF2["실행 Dockerfile<br/>(설계도)"]
+    end
+    subgraph DOCKER["Docker (런타임)"]
       DEV["dev 컨테이너<br/>강의 내내 작업하는 곳"]
       TEST["유닛테스트 컨테이너<br/>테스트만 격리 실행"]
       RUN["실행 컨테이너<br/>배포용 슬림 이미지"]
-      DF1 ==>|"빌드"| DEV
-      DF1 ==>|"빌드"| TEST
-      DF2 ==>|"빌드"| RUN
     end
     subgraph OLLAMA["Ollama (별도 프로그램)"]
       MODEL["gemma4:12b<br/>로컬 모델"]
     end
   end
   EXT["외부 AI 프로바이더 · 클라우드<br/>Gemini · OpenAI · Claude"]
+
+  DF1 ==>|"빌드"| DEV
+  DF1 ==>|"빌드"| TEST
+  DF2 ==>|"빌드"| RUN
 
   DEV -.->|"로컬 호출"| MODEL
   DEV -.->|"클라우드 호출"| EXT
@@ -38,7 +41,7 @@ flowchart TB
   class DEV work;
 ```
 
-그림은 두 가지 흐름으로 읽습니다. 굵은 화살표는 Dockerfile이라는 설계도로 컨테이너를 찍어내는 빌드 흐름이고, 점선은 컨테이너가 모델을 호출하는 흐름입니다. 우리가 강의 내내 실제로 들어가 작업하는 곳은 파란색으로 강조한 dev 컨테이너입니다. 이 컨테이너가 호스트의 Ollama(로컬)와 외부 프로바이더(클라우드)를 모두 부릅니다. 실행 컨테이너도 출하 뒤 같은 방식으로 모델을 부르며, 클라우드 프로바이더만 내 컴퓨터 바깥에 있습니다.
+그림은 두 가지 흐름으로 읽습니다. 굵은 화살표는 빌드 흐름입니다. Dockerfile은 저장소에 있는 설계도 파일이고, Docker가 그것을 읽어 컨테이너를 찍어냅니다. 그래서 Dockerfile은 Docker 박스 밖(프로젝트 파일)에 있고 컨테이너는 Docker 안에 있습니다. 점선은 컨테이너가 모델을 호출하는 흐름입니다. 우리가 강의 내내 실제로 들어가 작업하는 곳은 파란색으로 강조한 dev 컨테이너입니다. 이 컨테이너가 호스트의 Ollama(로컬)와 외부 프로바이더(클라우드)를 모두 부릅니다. 실행 컨테이너도 출하 뒤 같은 방식으로 모델을 부르며, 클라우드 프로바이더만 내 컴퓨터 바깥에 있습니다.
 
 ## 개발 컨테이너와 실행 컨테이너
 
@@ -54,21 +57,24 @@ flowchart TB
 ```mermaid
 flowchart TB
   subgraph COMP2["내 컴퓨터 또는 서버"]
-    subgraph DOCKER2["Docker"]
+    subgraph REPO2["프로젝트 파일 (저장소)"]
       DF1b["개발 Dockerfile<br/>(설계도)"]
       DF2b["실행 Dockerfile<br/>(설계도)"]
+    end
+    subgraph DOCKER2["Docker (런타임)"]
       DEVb["dev 컨테이너<br/>강의 내내 작업하는 곳"]
       TESTb["유닛테스트 컨테이너<br/>테스트만 격리 실행"]
       RUNb["실행 컨테이너<br/>배포용 슬림 이미지"]
-      DF1b ==>|"빌드"| DEVb
-      DF1b ==>|"빌드"| TESTb
-      DF2b ==>|"빌드"| RUNb
     end
     subgraph OLLAMA2["Ollama (별도 프로그램)"]
       MODELb["gemma4:12b<br/>로컬 모델"]
     end
   end
   EXT2["외부 AI 프로바이더 · 클라우드<br/>Gemini · OpenAI · Claude"]
+
+  DF1b ==>|"빌드"| DEVb
+  DF1b ==>|"빌드"| TESTb
+  DF2b ==>|"빌드"| RUNb
 
   RUNb -.->|"로컬 호출"| MODELb
   RUNb -.->|"클라우드 호출"| EXT2
