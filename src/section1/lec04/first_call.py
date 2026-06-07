@@ -15,7 +15,9 @@
     uv run python src/section1/lec04/first_call.py
 """
 
+import argparse
 import os
+import time
 
 # 이 단위의 기준 백엔드. 클라우드 gemini와 로컬 ollama를 같은 코드로 돌려 비교한다.
 DEFAULT_MODELS = {
@@ -145,15 +147,51 @@ def demo_multiturn(providers: list[str]) -> None:
         print(f"  이전 대화를 실으면: {_oneline(r2.choices[0].message.content)}")
 
 
+def measure(provider: str, messages: list[dict], rounds: int = 3) -> float:
+    """같은 호출을 여러 번 보내 평균 응답 시간(초)을 잰다."""
+    elapsed = []
+    for _ in range(rounds):
+        start = time.perf_counter()
+        call(provider, messages)
+        elapsed.append(time.perf_counter() - start)
+    return sum(elapsed) / len(elapsed)
+
+
+def demo_latency(providers: list[str]) -> None:
+    """같은 호출의 응답 시간을 백엔드별로 재서 클라우드와 로컬의 속도 차를 본다."""
+    print("=== (선택) 호출 지연 비교 — 같은 호출의 평균 응답 시간 ===")
+    messages = build_messages("너는 간결하게 답하는 도우미야.", "한 문장으로 자기소개를 해줘.")
+    for provider in providers:
+        avg = measure(provider, messages)
+        print(f"  {provider:8s} 평균 {avg:.2f}초   ({model_for(provider)})")
+
+
+def parse_args() -> argparse.Namespace:
+    """실행 옵션을 파싱한다."""
+    parser = argparse.ArgumentParser(description="첫 호출과 메시지 구조 예제.")
+    parser.add_argument(
+        "--latency",
+        action="store_true",
+        help="(선택) 핵심 데모 대신 호출 지연만 비교한다",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
     load_dotenv()
 
+    args = parse_args()
     providers = target_providers(available_providers())
     if not providers:
         print("gemini 키나 ollama 중 하나가 필요합니다. .env를 확인하세요.")
         return 1
+
+    # (선택) 지연 비교만 따로 돌린다.
+    if args.latency:
+        demo_latency(providers)
+        return 0
 
     demo_first_call(providers)
     demo_system_message(providers)
