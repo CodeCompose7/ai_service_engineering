@@ -173,11 +173,13 @@ uv run python src/section1/lec03/sampling_compare.py
 
 뒷부분 비교는 클라우드 프로바이더에서 돌립니다. temperature 0.0의 greedy 디코딩에서 응답이 멈추는 로컬 모델이 있어, 전 구간을 안정적으로 처리하는 클라우드를 골라 비교합니다. 참고로 요즘 호스티드 모델은 짧은 숫자에는 0에서 같은 값을 주지만, 긴 문장 생성에서는 0이어도 완전히 똑같지 않을 수 있습니다.
 
-샘플링을 비교할 것 없이 그냥 한 번 물어보고 싶을 때는 [ask.py](../../../src/section1/lec03/ask.py)를 씁니다. `DEFAULT_PROVIDER`로 한 번 호출해 답만 출력하고, 질문을 인자로 넘길 수도 있습니다.
+샘플링을 비교할 것 없이 그냥 한 번 물어보고 싶을 때는 [ask.py](../../../src/section1/lec03/ask.py)를 씁니다. `DEFAULT_PROVIDER`로 한 번 호출해 답만 출력합니다. 질문을 인자로 넘기고, 이 단위에서 본 `temperature`·`top_p`·`top_k`도 옵션으로 줄 수 있습니다. 여기서도 §4의 보정이 그대로 적용되어, OpenAI에 `--top-k`를 줘도 자동으로 빠집니다.
 
 ```bash
 uv run python src/section1/lec03/ask.py
 uv run python src/section1/lec03/ask.py "LiteLLM을 한 문장으로 설명해줘"
+uv run python src/section1/lec03/ask.py -t 0.2 "위 질문을 더 짧게"
+uv run python src/section1/lec03/ask.py -t 1.5 --top-k 40 "바다를 묘사하는 문장"
 ```
 
 ## 8. 직접 해보기
