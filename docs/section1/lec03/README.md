@@ -123,9 +123,13 @@ flowchart TD
   classDef default rx:8,ry:8;
 ```
 
-## 6. 예제 코드가 하는 일
+## 6. 예제 코드가 하는 일 및 결과
 
-[sampling_compare.py](../../../src/section1/lec03/sampling_compare.py)는 두 부분으로 나뉩니다. 앞부분은 호출 없이 순수 계산으로, 뒷부분은 실제 호출로 보여줍니다.
+예제는 둘입니다. [sampling_compare.py](../../../src/section1/lec03/sampling_compare.py)는 파라미터를 비교하고, [ask.py](../../../src/section1/lec03/ask.py)는 비교 없이 그냥 한 번 물어봅니다. 둘은 탐지·보정 로직을 공유합니다.
+
+### 6.1. sampling_compare — 구조와 결과
+
+sampling_compare는 두 부분으로 나뉩니다. 앞부분은 호출 없이 순수 계산으로, 뒷부분은 실제 호출로 보여줍니다.
 
 ```mermaid
 flowchart TB
@@ -133,7 +137,7 @@ flowchart TB
   ORDER --> A["파라미터 미리보기<br/>(호출 없음)"]
   ORDER --> B["temperature 효과 비교<br/>(실제 호출)"]
   A --> A1["safe_sampling_kwargs<br/>프로바이더별로 실제 보낼 값 계산<br/>OpenAI엔 top_k 제거·Claude는 온도 보정"]
-  B --> B1["같은 프롬프트를 여러 온도로<br/>litellm.completion 반복"]
+  B --> B1["같은 질문을 여러 온도로<br/>litellm.completion 반복"]
   B1 --> B2["온도별 출력을 나란히 출력"]
   classDef default rx:8,ry:8;
   classDef key fill:#eaf2ff,stroke:#4a78c0;
@@ -142,9 +146,7 @@ flowchart TB
 
 여기서 핵심은 `safe_sampling_kwargs`입니다. 원하는 샘플링 값을 그대로 보내지 않고, 프로바이더가 받을 수 있는 형태로 보정합니다. top_k를 받지 않는 OpenAI에는 top_k를 빼고, temperature는 프로바이더 상한을 넘지 않게 잘라 줍니다. §4의 표를 코드로 옮긴 것이 이 함수입니다.
 
-## 7. 실행
-
-공유된 비교 예제를 실행합니다. 앞부분은 호출 없이 프로바이더별로 실제 보낼 인자를 보여주고, 뒷부분은 같은 질문을 temperature만 바꿔 여러 번 호출합니다. 변화를 또렷하게 보려고 "1부터 100 사이의 정수 하나"를 묻습니다. 숫자는 같고 다름이 한눈에 보이기 때문입니다.
+변화를 또렷하게 보려고 "1부터 100 사이의 정수 하나"를 묻습니다. 숫자는 같고 다름이 한눈에 보이기 때문입니다.
 
 ```bash
 uv run python src/section1/lec03/sampling_compare.py
@@ -169,31 +171,70 @@ uv run python src/section1/lec03/sampling_compare.py
 읽어낼 점은 두 가지입니다.
 
 - 미리보기에서 OpenAI 줄에만 top_k가 빠져 있습니다. §4에서 본 차이가 그대로 드러납니다.
-- temperature가 0이면 매번 같은 숫자가 나오고, 높일수록 값이 갈립니다. 무작위성을 우리가 조절한다는 것이 이렇게 눈에 보입니다. 재현이 필요한 평가에서 무작위성을 낮춰 출력을 안정시키는 이유도 여기서 체감합니다.
+- temperature가 0이면 매번 같은 숫자가 나오고, 높일수록 값이 갈립니다. 무작위성을 우리가 조절한다는 것이 이렇게 눈에 보입니다.
 
-뒷부분 비교는 클라우드 프로바이더에서 돌립니다. temperature 0.0의 greedy 디코딩에서 응답이 멈추는 로컬 모델이 있어, 전 구간을 안정적으로 처리하는 클라우드를 골라 비교합니다. 참고로 요즘 호스티드 모델은 짧은 숫자에는 0에서 같은 값을 주지만, 긴 문장 생성에서는 0이어도 완전히 똑같지 않을 수 있습니다.
+뒷부분 비교는 클라우드 프로바이더에서 돌립니다. temperature 0.0의 greedy 디코딩에서 응답이 멈추는 로컬 모델이 있어, 전 구간을 안정적으로 처리하는 클라우드를 골라 비교합니다.
 
-샘플링을 비교할 것 없이 그냥 한 번 물어보고 싶을 때는 [ask.py](../../../src/section1/lec03/ask.py)를 씁니다. `DEFAULT_PROVIDER`로 한 번 호출해 답만 출력합니다. 질문을 인자로 넘기고, 이 단위에서 본 `temperature`·`top_p`·`top_k`도 옵션으로 줄 수 있습니다. 여기서도 §4의 보정이 그대로 적용되어, OpenAI에 `--top-k`를 줘도 자동으로 빠집니다.
+### 6.2. ask — 한 번 물어보기와 파라미터 실험
+
+ask는 `DEFAULT_PROVIDER`로 한 번 호출해 답만 출력합니다. 질문과 함께 `temperature`·`top_p`·`top_k`를 옵션으로 받고, sampling_compare의 보정을 그대로 거치므로 OpenAI에 `--top-k`를 줘도 자동으로 빠집니다.
 
 ```bash
 uv run python src/section1/lec03/ask.py
 uv run python src/section1/lec03/ask.py "LiteLLM을 한 문장으로 설명해줘"
 uv run python src/section1/lec03/ask.py -t 0.2 "위 질문을 더 짧게"
-uv run python src/section1/lec03/ask.py -t 1.5 --top-k 40 "바다를 묘사하는 문장"
+uv run python src/section1/lec03/ask.py -t 1.5 --top-p 0.9 --top-k 40 "바다를 묘사하는 문장"
 ```
 
-## 8. 직접 해보기
+세 손잡이의 효과를 한자리에서 보려고, 같은 질문(1부터 100 사이 정수 하나)을 옵션만 바꿔 6번씩 불러 봤습니다. 숫자가 같고 다름으로 각 손잡이의 효과가 그대로 드러납니다.
 
-공유된 예제 코드에서 `TEMPERATURES` 값을 바꿔 다시 실행해봅니다.
+| 설정 | 뽑힌 숫자 (6번) | 서로 다른 값 |
+| --- | --- | --- |
+| `temperature=0.0` | 73 73 73 73 73 73 | 1 |
+| `temperature=2.0` | 63 73 47 73 87 57 | 5 |
+| `top_p=0.2` | 73 73 73 73 73 73 | 1 |
+| `top_p=1.0` | 42 84 73 83 73 73 | 4 |
+| `top_k=1` | 73 73 73 73 42 73 | 2 |
+| `top_k=100` | 83 42 73 83 83 83 | 3 |
 
-- 0에 가깝게 줬다가 높게 줘보며 출력이 얼마나 흔들리는지 비교합니다.
-- top_k를 받는 프로바이더(Claude·Gemini·Ollama)를 기본으로 두고 top_k를 1로 줘봅니다. 후보가 하나로 좁혀져 출력이 거의 고정되는 것을 봅니다.
+읽어낼 점입니다.
+
+- 세 손잡이 모두 좁히면 같은 값으로 모이고, 넓히면 값이 갈립니다. 낮은 temperature, 낮은 top_p, 작은 top_k가 "좁히는" 쪽입니다.
+- temperature와 top_p가 가장 또렷합니다. top_k는 효과가 약한 편이고, top_k=1이어도 완전히 한 값으로 고정되지는 않습니다. 호스티드 모델이 내부적으로 약간의 비결정성을 갖기 때문입니다.
+
+```mermaid
+flowchart TB
+  subgraph TMP["temperature"]
+    direction LR
+    A0["0.0<br/>한 값으로 고정"] -->|"높일수록"| A1["2.0<br/>값이 크게 갈림"]
+  end
+  subgraph TP["top_p"]
+    direction LR
+    B0["0.2<br/>좁은 후보 → 고정"] -->|"높일수록"| B1["1.0<br/>전체 후보 → 다양"]
+  end
+  subgraph TK["top_k"]
+    direction LR
+    C0["1<br/>후보 최소 → 거의 고정"] -->|"키울수록"| C1["100<br/>후보 많음 → 다양"]
+  end
+  TMP ~~~ TP ~~~ TK
+  classDef default rx:8,ry:8;
+```
+
+한 가지 주의가 있습니다. temperature를 너무 높이면 다양해지는 정도를 넘어 출력이 망가지기도 합니다. 작은 로컬 모델에서 특히 그렇습니다. 예를 들어 ollama의 gemma 모델에 temperature=1.5로 문장을 청하면 글자가 깨지고 말이 안 되는 문장이 섞여 나옵니다. 다양성과 붕괴는 종이 한 장 차이라, 무작정 높이지 않습니다.
+
+## 7. 직접 해보기
+
+공유된 예제 코드에서 값을 바꿔 다시 실행해봅니다.
+
+- sampling_compare의 `TEMPERATURES`를 0에 가깝게 줬다가 높게 줘보며 출력이 얼마나 흔들리는지 비교합니다.
+- ask에서 `--top-p`나 `--top-k`를 바꿔 같은 질문을 여러 번 불러, 위 표처럼 값이 모이고 갈리는 차이를 직접 만들어봅니다.
 
 값 하나가 결과를 얼마나 바꾸는지 손으로 확인하는 것이 이 단위의 핵심입니다.
 
-## 9. 정리
+## 8. 정리
 
 - 샘플링 파라미터는 다음 토큰을 고르는 방식을 조절하는 손잡이입니다.
 - temperature는 분포의 날카로움, top_p는 누적 확률 컷, top_k는 개수 컷입니다.
+- 좁히면 출력이 한 값으로 모이고 넓히면 갈립니다. temperature와 top_p가 또렷하고 top_k는 약한 편입니다.
 - 같은 파라미터라도 프로바이더마다 받는 것이 다릅니다. top_k는 OpenAI가 받지 않고, temperature 범위도 제각각입니다.
 - 정답이 분명한 작업은 낮은 무작위성, 다양성이 가치인 작업은 높은 무작위성으로 시작합니다.
