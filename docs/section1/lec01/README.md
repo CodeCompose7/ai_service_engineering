@@ -422,6 +422,10 @@ uv run python src/section1/lec01/smoke_test.py
 
 ### 6.1. 예제 코드가 하는 일
 
+예제는 두 개입니다. [smoke_test.py](../../../src/section1/lec01/smoke_test.py)는 첫 성공에서 멈추는 연결 확인용이고, [smoke_test_2.py](../../../src/section1/lec01/smoke_test_2.py)는 준비된 프로바이더를 모두 호출해 어디까지 닿는지 한 번에 보여주는 점검용입니다. 두 번째 것은 탐지·정렬·모델 구성을 첫 번째에서 그대로 가져다 쓰므로, 차이는 "처음 성공에서 멈추느냐, 끝까지 도느냐"뿐입니다.
+
+#### 6.1.1. smoke_test.py — 첫 성공에서 멈추기
+
 [smoke_test.py](../../../src/section1/lec01/smoke_test.py)를 통째로 읽을 필요는 없습니다. 골격은 "준비된 프로바이더를 찾아 순서대로 한 번씩 호출해 보고, 처음 성공한 곳에서 멈춘다"입니다. 아래 그림에서 파란 칸 두 개만 보면 됩니다.
 
 ```mermaid
@@ -447,11 +451,54 @@ flowchart TB
 
 나머지 부분, 즉 `.env` 파싱이나 시도 순서를 만드는 `provider_order`, 예외를 잡아 다음으로 넘기는 처리는 위 골격을 거드는 배선일 뿐이라 지금은 그림으로 넘어가도 됩니다.
 
-준비된 프로바이더가 여럿이라 전부 닿는지 한 번에 확인하고 싶으면, 첫 성공에서 멈추지 않고 준비된 곳을 모두 호출해 성패를 모아 보여주는 [smoke_test_2.py](../../../src/section1/lec01/smoke_test_2.py)를 실행합니다.
+#### 6.1.2. smoke_test_2.py — 준비된 곳 전부 호출하기
+
+프로바이더를 여럿 준비했다면 전부 닿는지 한 번에 확인하고 싶을 수 있습니다. [smoke_test_2.py](../../../src/section1/lec01/smoke_test_2.py)는 첫 성공에서 멈추지 않고 준비된 곳을 모두 호출한 뒤, 프로바이더별 성패를 마지막에 요약해 보여줍니다. 골격은 같고, 그림에서 보듯 호출 결과를 모아 두고 다음 프로바이더로 계속 넘어간다는 점만 다릅니다.
+
+```mermaid
+flowchart TB
+  ENV[".env 읽기<br/>load_dotenv"] --> DETECT["준비된 프로바이더 탐지<br/>available_providers"]
+  DETECT --> ORDER["시도 순서 정하기<br/>provider_order"]
+  ORDER --> LOOP{"순서대로<br/>다음 프로바이더"}
+  LOOP -->|"있음"| CALL["LiteLLM 호출<br/>litellm.completion"]
+  CALL -->|"성공/실패"| REC["결과 기록 후<br/>다음으로 계속"]
+  REC --> LOOP
+  LOOP -->|"없음"| SUM["프로바이더별 성패 요약"]
+
+  classDef default rx:8,ry:8;
+  classDef key fill:#eaf2ff,stroke:#4a78c0;
+  class CALL,SUM key;
+```
 
 ```bash
 uv run python src/section1/lec01/smoke_test_2.py
 ```
+
+네 프로바이더를 모두 준비해 두고 실행하면 각 프로바이더의 응답이 차례로 찍히고, 마지막에 성패 요약이 붙습니다. 실제 출력은 다음과 같습니다. 응답 본문은 길어서 줄였습니다.
+
+```text
+=== [ollama] ollama/gemma4:12b-mxfp8 ===
+저는 사용자의 질문에 대한 답변을 주고 ...
+
+=== [gemini] gemini/gemini-2.5-flash ===
+어떤 상황에서 자기소개를 하시는지에 따라 ...
+
+=== [openai] openai/gpt-4o-mini ===
+안녕하세요, 저는 다양한 정보와 지식을 제공하는 AI 언어 모델입니다.
+
+=== [anthropic] anthropic/claude-haiku-4-5 ===
+안녕하세요, 저는 Claude라고 하는 AI 어시스턴트로 ...
+
+--- 요약 ---
+  성공  ollama     ollama/gemma4:12b-mxfp8
+  성공  gemini     gemini/gemini-2.5-flash
+  성공  openai     openai/gpt-4o-mini
+  성공  anthropic  anthropic/claude-haiku-4-5
+
+4개 중 4개 성공
+```
+
+같은 한 줄의 `litellm.completion`이 네 프로바이더 모두에서 도는 것을 한눈에 볼 수 있습니다. 시도 순서는 맨 앞만 `DEFAULT_PROVIDER`가 정하고 나머지는 탐지된 순서를 따르므로, `.env` 설정에 따라 출력 순서는 달라질 수 있습니다. 어떤 프로바이더가 키 부족이나 크레딧 소진으로 실패하면 그 줄만 "실패"로 찍히고 나머지는 계속 돕니다. 하나라도 성공하면 환경은 동작하는 것으로 봅니다.
 
 ## 7. 확인 체크리스트
 
