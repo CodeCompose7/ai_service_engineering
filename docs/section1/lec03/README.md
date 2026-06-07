@@ -1,6 +1,8 @@
 # lec03 — 샘플링 파라미터
 
-> S1 개요: [docs/section1/README.md](../README.md) · 분량 10분 · 산출물: 비교 노트북
+> - S1 개요: [docs/section1/README.md](../README.md)
+> - 분량 10분
+> - 산출물: 비교 노트북
 
 ## 목표
 

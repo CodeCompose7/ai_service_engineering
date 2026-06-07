@@ -1,6 +1,8 @@
 # lec01 — 환경 셋업
 
-> S1 개요: [docs/section1/README.md](../README.md) · 분량 12분 · 산출물: 동작하는 개발 컨테이너
+> - S1 개요: [docs/section1/README.md](../README.md)
+> - 분량 12분
+> - 산출물: 동작하는 개발 컨테이너
 
 ## 목표
 
@@ -42,6 +44,14 @@ flowchart TB
 ```
 
 그림은 두 가지 흐름으로 읽습니다. 굵은 화살표는 빌드 흐름입니다. Dockerfile은 저장소에 있는 설계도 파일이고, Docker가 그것을 읽어 컨테이너를 찍어냅니다. 그래서 Dockerfile은 Docker 박스 밖(프로젝트 파일)에 있고 컨테이너는 Docker 안에 있습니다. 점선은 컨테이너가 모델을 호출하는 흐름입니다. 우리가 강의 내내 실제로 들어가 작업하는 곳은 파란색으로 강조한 dev 컨테이너입니다. 이 컨테이너가 호스트의 Ollama(로컬)와 외부 프로바이더(클라우드)를 모두 부릅니다. 실행 컨테이너도 출하 뒤 같은 방식으로 모델을 부르며, 클라우드 프로바이더만 내 컴퓨터 바깥에 있습니다.
+
+## 사전 준비
+
+다음 세 가지는 호스트(여러분의 실제 OS)에 설치되어 있어야 합니다.
+
+- Docker Desktop. 설치 후 `docker run hello-world`가 도는지 확인합니다.
+- VSCode.
+- VSCode 확장 Dev Containers를 설치합니다. (확장 ID `ms-vscode-remote.remote-containers`)
 
 ## 개발 컨테이너와 실행 컨테이너
 
@@ -85,14 +95,6 @@ flowchart TB
 ```
 
 이번에는 실행 컨테이너를 초록색으로 강조했습니다. dev에서 보던 호출 구조가 그대로 실행 컨테이너로 옮겨온 모습입니다. LiteLLM을 거치므로 백엔드 선택은 여전히 모델 문자열 하나로 끝납니다. 배포 환경에 로컬 Ollama가 없으면 클라우드 프로바이더만 부르게 됩니다.
-
-## 사전 준비
-
-다음 세 가지는 호스트(여러분의 실제 OS)에 설치되어 있어야 합니다.
-
-- Docker Desktop. 설치 후 `docker run hello-world`가 도는지 확인합니다.
-- VSCode.
-- VSCode 확장 Dev Containers를 설치합니다. (확장 ID `ms-vscode-remote.remote-containers`)
 
 ## 컨테이너 열기
 

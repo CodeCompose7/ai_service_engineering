@@ -1,6 +1,8 @@
 # lec08 — 구조화 출력 1
 
-> S1 개요: [docs/section1/README.md](../README.md) · 분량 13분 · 산출물: Pydantic 모델
+> - S1 개요: [docs/section1/README.md](../README.md)
+> - 분량 13분
+> - 산출물: Pydantic 모델
 
 ## 목표
 

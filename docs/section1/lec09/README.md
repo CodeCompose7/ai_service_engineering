@@ -1,6 +1,8 @@
 # lec09 — 구조화 출력 2
 
-> S1 개요: [docs/section1/README.md](../README.md) · 분량 12분 · 산출물: 안전한 추출 함수
+> - S1 개요: [docs/section1/README.md](../README.md)
+> - 분량 12분
+> - 산출물: 안전한 추출 함수
 
 ## 목표
 

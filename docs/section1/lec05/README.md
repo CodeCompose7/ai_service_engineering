@@ -1,6 +1,8 @@
 # lec05 — 프롬프트 패턴
 
-> S1 개요: [docs/section1/README.md](../README.md) · 분량 18분 · 산출물: 프롬프트 템플릿
+> - S1 개요: [docs/section1/README.md](../README.md)
+> - 분량 18분
+> - 산출물: 프롬프트 템플릿
 
 ## 목표
 

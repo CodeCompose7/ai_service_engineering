@@ -1,6 +1,8 @@
 # lec04 — 단일 provider 호출
 
-> S1 개요: [docs/section1/README.md](../README.md) · 분량 12분 · 산출물: 호출 스니펫
+> - S1 개요: [docs/section1/README.md](../README.md)
+> - 분량 12분
+> - 산출물: 호출 스니펫
 
 ## 목표
 
