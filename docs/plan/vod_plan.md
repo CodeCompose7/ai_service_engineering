@@ -84,10 +84,10 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | 샘플링 파라미터 | 10 | temperature/top_p/top_k 효과 비교 | 비교 스크립트 |
 | 단일 provider 호출 | 12 | 첫 API 호출, 메시지 구조 | 호출 스니펫 |
 | 프롬프트 패턴 | 18 | system/user 구조, few-shot, 역할·출력형식 강제, 실패 교정 | 프롬프트 템플릿 |
-| LiteLLM 멀티 프로바이더 | 16 | 모델 문자열로 수렴, provider 교체 시연 | 멀티 프로바이더 래퍼 |
+| LiteLLM 멀티 프로바이더 | 5 | 모델 문자열로 수렴, provider 교체 시연 | 멀티 프로바이더 래퍼 |
 | Ollama 로컬 | 12 | LiteLLM 백엔드 하나로, 호스트 연결 | 로컬 호출 예제 |
-| 구조화 출력 1 | 13 | Pydantic 스키마, 프롬프트로 JSON 받기의 함정 | Pydantic 모델 |
-| 구조화 출력 2 | 12 | instructor로 검증·재시도 | 안전한 추출 함수 |
+| 구조화 출력 1 | 18 | Pydantic 스키마, 프롬프트로 JSON 받기의 함정 | Pydantic 모델 |
+| 구조화 출력 2 | 18 | instructor로 검증·재시도 | 안전한 추출 함수 |
 
 ### S2 — 데이터 & RAG 코어 (110분 / 7단위)
 
