@@ -101,6 +101,7 @@ flowchart TB
     direction LR
     Q2["질문"] --> GEN["그럴듯한 토큰 생성"] --> PLA["그럴듯한 문장<br/>맞을 수도, 틀릴 수도"]
   end
+  EXP ~~~ REAL
   classDef default rx:8,ry:8;
   classDef warn fill:#fdeaea,stroke:#c0564a;
   class PLA warn;
@@ -131,6 +132,7 @@ flowchart TB
     direction LR
     K1["안"] --- K2["녕"] --- K3[","] --- K4["세"] --- K5["상"]
   end
+  EN ~~~ KO
   classDef default rx:8,ry:8;
 ```
 
@@ -168,6 +170,7 @@ flowchart TB
     direction LR
     BI["긴 입력"] --- BO["출력 여유 좁음"]
   end
+  A ~~~ B
   classDef default rx:8,ry:8;
 ```
 
@@ -302,14 +305,15 @@ flowchart TB
     direction LR
     A1["사용량이 늘면"] --> A2["비용도 비례해 증가"]
   end
-  subgraph M2["클라우드 정액제"]
-    direction LR
-    B1["사용량이 늘어도 한도 안이면"] --> B2["비용은 월정액 그대로"]
-  end
-  subgraph M3["로컬 무료"]
+  subgraph M2["로컬 무료"]
     direction LR
     C1["사용량이 늘어도"] --> C2["추가 과금 없음<br/>장비 한계까지"]
   end
+  subgraph M3["클라우드 정액제"]
+    direction LR
+    B1["사용량이 늘어도 한도 안이면"] --> B2["비용은 월정액 그대로"]
+  end
+  M1 ~~~ M2 ~~~ M3
   classDef default rx:8,ry:8;
 ```
 
@@ -335,6 +339,7 @@ flowchart TB
     direction LR
     S1["토큰이 생기는 대로 즉시 전송"] --> S2["첫 글자가 빨리 보임<br/>체감 속도 향상"]
   end
+  NS ~~~ ST
   classDef default rx:8,ry:8;
   classDef ok fill:#eafaef,stroke:#3a9a5c;
   class S2 ok;
