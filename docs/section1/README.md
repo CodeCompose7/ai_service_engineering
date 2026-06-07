@@ -74,4 +74,4 @@ flowchart TD
 
 ## 코드와 테스트
 
-공유되는 예제 코드는 [src/section1](../../src/section1)에, 테스트는 [tests/section1](../../tests/section1)에 같은 `lecNN` 구조로 들어갑니다. 문서가 먼저 자리를 잡은 뒤 코드를 채웁니다. 강의에서는 이 코드를 받아 실행하는 것이 기본이고, 직접 작성하는 부분은 각 단위의 "직접 해보기"로 한정합니다.
+공유되는 예제 코드는 [src/section1](../../src/section1)에, 테스트는 [tests/section1](../../tests/section1)에 같은 `lecNN` 구조로 들어 있습니다. 이 저장소를 받아 devcontainer 안에서 그대로 실행하는 것이 기본이고, 손으로 바꿔보는 부분은 각 단위의 "직접 해보기"로 한정합니다.

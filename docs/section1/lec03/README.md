@@ -112,7 +112,7 @@ uv run python src/section1/lec03/sampling_compare.py
 
 ## 직접 해보기
 
-코드에서 `temperature` 값만 바꿔 다시 실행해봅니다.
+공유된 예제 코드에서 `temperature` 값만 바꿔 다시 실행해봅니다.
 
 - 0에 가깝게 줬다가 2에 가깝게 줘봅니다.
 - 같은 프롬프트의 출력이 얼마나 흔들리는지 비교합니다.
