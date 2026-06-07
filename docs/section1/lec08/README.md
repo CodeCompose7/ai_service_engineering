@@ -68,7 +68,7 @@ prompt = """다음 리뷰를 분석해 JSON으로만 답해라.
 리뷰: 배송은 빨랐는데 포장이 너무 허술했어요."""
 
 resp = litellm.completion(
-    model="gemini/gemini-2.0-flash",
+    model="gemini/gemini-2.5-flash",
     messages=[{"role": "user", "content": prompt}],
 )
 text = resp.choices[0].message.content

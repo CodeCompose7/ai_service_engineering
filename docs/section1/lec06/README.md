@@ -37,7 +37,7 @@ import litellm
 
 messages = [{"role": "user", "content": "LiteLLM을 한 문장으로 설명해줘."}]
 
-for model in ["gemini/gemini-2.0-flash", "openai/gpt-4o-mini", "anthropic/claude-3-5-haiku-latest"]:
+for model in ["gemini/gemini-2.5-flash", "openai/gpt-4o-mini", "anthropic/claude-3-5-haiku-latest"]:
     resp = litellm.completion(model=model, messages=messages)
     print(model, "->", resp.choices[0].message.content)
 ```
@@ -50,7 +50,7 @@ for model in ["gemini/gemini-2.0-flash", "openai/gpt-4o-mini", "anthropic/claude
 
 | 프로바이더 접두사 | 읽는 환경변수 | 예시 모델 문자열 |
 | --- | --- | --- |
-| `gemini/` | `GEMINI_API_KEY` | `gemini/gemini-2.0-flash` |
+| `gemini/` | `GEMINI_API_KEY` | `gemini/gemini-2.5-flash` |
 | `openai/` | `OPENAI_API_KEY` | `openai/gpt-4o-mini` |
 | `anthropic/` | `ANTHROPIC_API_KEY` | `anthropic/claude-3-5-haiku-latest` |
 | `ollama/` | (로컬 실행이라 키 불필요) | `ollama/gemma4:12b` |
@@ -75,7 +75,7 @@ lec01에서 `.env`에 채워둔 키가 `load_dotenv()`로 환경변수에 올라
 - 토큰 단가까지 다르므로 비용도 달라집니다.
 
 ```python
-for model in ["gemini/gemini-2.0-flash", "openai/gpt-4o-mini"]:
+for model in ["gemini/gemini-2.5-flash", "openai/gpt-4o-mini"]:
     resp = litellm.completion(model=model, messages=messages)
     u = resp.usage
     print(model, u.prompt_tokens, u.completion_tokens)
@@ -95,7 +95,7 @@ for model in ["gemini/gemini-2.0-flash", "openai/gpt-4o-mini"]:
 ```python
 import litellm
 
-DEFAULT_MODEL = "gemini/gemini-2.0-flash"
+DEFAULT_MODEL = "gemini/gemini-2.5-flash"
 
 def chat(messages: list[dict], model: str = DEFAULT_MODEL, **kwargs) -> str:
     """프로바이더 무관하게 호출하고 본문 텍스트만 돌려준다."""

@@ -65,7 +65,7 @@ from litellm import completion
 
 client = instructor.from_litellm(completion)
 
-def extract_review(text: str, model: str = "gemini/gemini-2.0-flash") -> Review:
+def extract_review(text: str, model: str = "gemini/gemini-2.5-flash") -> Review:
     return client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": f"다음 리뷰를 분석해줘.\n{text}"}],

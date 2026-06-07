@@ -64,7 +64,7 @@ import litellm
 load_dotenv()  # .env의 GEMINI_API_KEY를 환경변수로 로드
 
 resp = litellm.completion(
-    model="gemini/gemini-2.0-flash",  # 모델명은 녹화 시점 최신으로 확정
+    model="gemini/gemini-2.5-flash",  # 모델명은 녹화 시점 최신으로 확정
     messages=[
         {"role": "system", "content": "너는 간결하게 답하는 도우미야."},
         {"role": "user", "content": "한 문장으로 자기소개를 해줘."},
