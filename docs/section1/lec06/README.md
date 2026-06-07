@@ -74,7 +74,7 @@ flowchart TB
     R3["Claude 형식"]
   end
   RAW --> LL["LiteLLM"]
-  LL --> U["통일된 형식<br/>choices[0].message.content · usage"]
+  LL --> U["통일된 형식<br/>choices[0].message.content<br/>usage"]
   classDef default rx:8,ry:8;
 ```
 
@@ -113,7 +113,7 @@ def chat(messages: list[dict], model: str = DEFAULT_MODEL, **kwargs) -> str:
 
 ```mermaid
 flowchart TD
-  Caller["호출부<br/>chat(messages, model?)"] --> Wrap["chat 래퍼"]
+  Caller["호출부<br/>chat(messages, model=기본값)"] --> Wrap["chat 래퍼"]
   Wrap --> Norm["못 받는 파라미터 제거<br/>(예: OpenAI의 top_k)"]
   Norm --> LL["litellm.completion"]
   LL --> Body["resp.choices[0]<br/>.message.content"]
