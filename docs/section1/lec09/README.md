@@ -160,7 +160,13 @@ Ollama는 기본이 로컬이지만, 모델 이름 끝에 `-cloud`를 붙이면 
 *ollama.com 설정의 Keys 메뉴를 열고 Add API Key를 누릅니다.*
 
 ![키 이름을 짓고 Generate API Key](img/Ollama_API_key_02.png)
-*키 이름을 정하고 Generate API Key를 누르면 키가 발급됩니다. 발급된 키는 그때 한 번만 보이니, 바로 복사해 `.env`의 `OLLAMA_API_KEY`에 넣습니다.*
+*키 이름을 정하고 Generate API Key를 누릅니다.*
+
+![발급된 API 키](img/Ollama_API_key_03.png)
+*발급된 키가 보입니다. 이 값은 그때 한 번만 보이니 바로 복사해 둡니다.*
+
+![.env에 키 붙여넣기](img/Ollama_API_key_04.png)
+*복사한 키를 `.env`의 `OLLAMA_API_KEY`에 붙여넣습니다.*
 
 `.env.sample`에 `OLLAMA_API_KEY` 항목을 두었습니다. 로컬 모델에는 비워 두고, 클라우드 모델을 쓸 때만 채웁니다.
 
