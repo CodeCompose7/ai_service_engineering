@@ -59,13 +59,13 @@ def extract_review(text: str, model: str = "gemini/gemini-2.5-flash") -> Review:
 리뷰: 배송은 빨랐는데 포장이 너무 허술했어요.
 
 [클라우드] gemini/gemini-2.5-flash  (재시도 0회)
-  → Review(sentiment='부정', confidence=0.9, keywords=['배송', '포장', '허술'])
+  → Review(sentiment='부정', confidence=0.8, keywords=['배송', '포장'])
 
-[로컬] ollama/gemma4:31b-cloud  (재시도 0회)
-  → NormalizedReview(sentiment='부정', confidence=0.8, keywords=['배송', '포장'])
+[Ollama Cloud] ollama/gemma4:31b-cloud  (재시도 0회)
+  → NormalizedReview(sentiment='부정', confidence=0.85, keywords=['배송', '포장', '허술함'])
 ```
 
-`model` 인자만 바꾸면 같은 함수가 클라우드와 로컬을 오갑니다. 로컬에 쓰인 모드와 모델 차이는 6절에서 다룹니다.
+`model` 인자만 바꾸면 같은 함수가 클라우드와 ollama를 오갑니다. ollama에 쓰인 모드와, 로컬·클라우드 차이는 6절과 7절에서 다룹니다.
 
 ## 4. 재시도가 작동하는 방식
 
@@ -113,12 +113,12 @@ flowchart LR
 
 [클라우드] gemini/gemini-2.5-flash — 3개
   → Review(sentiment='긍정', confidence=0.9, keywords=['배송', '빠름'])
-  → Review(sentiment='부정', confidence=0.9, keywords=['고객센터', '불친절'])
+  → Review(sentiment='부정', confidence=0.9, keywords=['고객센터', '불친절', '응대'])
   → Review(sentiment='중립', confidence=0.8, keywords=['가격', '무난'])
 
-[로컬] ollama/gemma4:31b-cloud — 3개
+[Ollama Cloud] ollama/gemma4:31b-cloud — 3개
   → Review(sentiment='긍정', confidence=1.0, keywords=['배송', '빠름'])
-  → Review(sentiment='부정', confidence=1.0, keywords=['고객센터', '불친절'])
+  → Review(sentiment='부정', confidence=1.0, keywords=['고객센터', '응대', '불친절'])
   → Review(sentiment='중립', confidence=0.9, keywords=['가격', '무난함'])
 ```
 
@@ -139,9 +139,26 @@ flowchart TD
 - 비-OpenAI 백엔드(ollama 등)는 모델마다 tool calling 지원이 달라, JSON 모드가 안전합니다. lec07에서 본 tool calling의 백엔드 편차가 여기서도 나타납니다.
 - 여러 개(`list[Review]`)는 tool calling이 객체 하나를 전제로 해 흔들리므로, JSON 모드로 받습니다. 5절의 목록 추출을 양쪽 다 JSON 모드로 돌린 이유입니다.
 
-모드는 `instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)`처럼 한 줄로 바꿉니다. 작은 로컬 모델이 `" 중립"`처럼 사소하게 흔들릴 때는 lec08의 정규화 모델을 함께 써 재시도 없이 흡수합니다. 3절의 로컬 결과가 `NormalizedReview`였던 것이 그 때문입니다.
+모드는 `instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)`처럼 한 줄로 바꿉니다. 작은 로컬 모델이 `" 중립"`처럼 사소하게 흔들릴 때는 lec08의 정규화 모델을 함께 써 재시도 없이 흡수합니다. 3절의 ollama 결과가 `NormalizedReview`였던 것이 그 때문입니다.
 
-## 7. S1을 마치며
+## 7. Ollama 로컬과 클라우드
+
+Ollama는 기본이 로컬이지만, 모델 이름 끝에 `-cloud`를 붙이면 같은 코드로 Ollama Cloud의 큰 모델을 부를 수 있습니다. 위 예제의 `gemma4:31b-cloud`가 그것입니다. 로컬에 내려받지 않고 Ollama의 GPU에서 도는 더 큰 모델이라 형식을 깔끔하게 지키는 편이고, 대신 유료 구독이나 무료 한도를 씁니다. 그래서 예제 출력의 라벨도 로컬과 구분해 `Ollama Cloud`로 적습니다.
+
+인증은 두 가지 방법이 있습니다.
+
+| 방법 | 준비 | `.env` |
+| --- | --- | --- |
+| 로그인된 로컬 데몬 | 호스트에서 `ollama signin` | `OLLAMA_API_BASE`만. 데몬이 대신 인증 |
+| API 키 | ollama.com 설정의 API keys에서 발급 | `OLLAMA_API_KEY`에 키를 넣음 |
+
+- 로컬 모델만 쓰면 키도 로그인도 필요 없습니다.
+- 클라우드 모델(`-cloud`)을 쓰려면 둘 중 하나가 필요합니다. 호스트에서 한 번 로그인해 두면 코드는 로컬 모델과 똑같이 `OLLAMA_API_BASE`만으로 동작합니다.
+- 키로 직접 쓰려면 ollama.com 설정의 API keys에서 Add API Key로 발급해 `.env`의 `OLLAMA_API_KEY`에 넣습니다. 예제의 `targets`는 이 키가 있으면 호출에 함께 넘깁니다.
+
+`.env.sample`에 `OLLAMA_API_KEY` 항목을 두었습니다. 로컬 모델에는 비워 두고, 클라우드 모델을 쓸 때만 채웁니다.
+
+## 8. S1을 마치며
 
 이로써 S1의 한 바퀴가 끝납니다. 지금까지 거쳐 온 길은 다음과 같습니다.
 
@@ -152,13 +169,14 @@ flowchart TD
 
 이 추출 함수는 다음 섹션부터 데이터와 에이전트를 다룰 때 반복해 쓰는 기본 부품이 됩니다.
 
-## 8. 정리
+## 9. 정리
 
 - instructor는 Pydantic 모델을 출력 스키마로 받아 파싱·검증·재시도를 대신 처리합니다.
 - 결과로 검증된 Pydantic 객체를 바로 돌려받는 안전한 추출 함수를 얻습니다.
 - `response_model`에 `list[Review]`를 주면 한 호출로 여러 객체를 목록으로 받습니다.
 - 백엔드에 맞춰 모드만 손봅니다. 비-OpenAI 백엔드와 목록 추출은 JSON 모드(lec07)가, 작은 로컬 모델은 정규화 모델(lec08)이 안정적입니다.
+- Ollama는 기본이 로컬이고, `-cloud` 모델로 클라우드도 씁니다. 클라우드는 `ollama signin`이나 `OLLAMA_API_KEY`로 인증합니다.
 
-## 9. 다음 섹션
+## 10. 다음 섹션
 
 [S2 — 데이터 & RAG 코어](../../plan/vod_plan.md)로 이어집니다. 여기서 만든 호출·추출 부품 위에 데이터 처리와 검색을 쌓습니다.

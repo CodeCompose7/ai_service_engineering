@@ -67,6 +67,36 @@ def test_targets_empty_when_nothing_ready():
     assert targets({}) == []
 
 
+def test_targets_labels_cloud_model():
+    env = {"OLLAMA_API_BASE": "http://h:11434", "OLLAMA_MODEL": "gemma4:31b-cloud"}
+    label, model, _ = targets(env)[0]
+    assert label == "Ollama Cloud"
+    assert model == "ollama/gemma4:31b-cloud"
+
+
+def test_targets_passes_api_key_when_set():
+    env = {
+        "OLLAMA_API_BASE": "http://h:11434",
+        "OLLAMA_MODEL": "gemma4:31b-cloud",
+        "OLLAMA_API_KEY": "k",
+    }
+    _, _, opts = targets(env)[0]
+    assert opts["api_key"] == "k"
+
+
+def test_targets_omits_api_key_when_absent():
+    env = {"OLLAMA_API_BASE": "http://h:11434", "OLLAMA_MODEL": "gemma4:12b"}
+    _, _, opts = targets(env)[0]
+    assert "api_key" not in opts
+
+
+def test_backend_opts_picks_json_for_ollama():
+    from section1.lec09.extract import NormalizedReview, _backend_opts
+
+    assert _backend_opts("ollama/gemma4:31b-cloud") == (True, NormalizedReview)
+    assert _backend_opts("gemini/gemini-2.5-flash") == (False, Review)
+
+
 def test_make_client_mode_switches_with_json_mode():
     import instructor
 

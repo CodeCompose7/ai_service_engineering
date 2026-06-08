@@ -125,13 +125,23 @@ def local_model(env: dict | None = None) -> str:
 
 
 def targets(env: dict | None = None) -> list[tuple[str, str, dict]]:
-    """(라벨, 모델, 추가 kwargs) 목록. 준비된 클라우드·로컬만 담는다."""
+    """(라벨, 모델, 추가 kwargs) 목록. 준비된 클라우드·ollama만 담는다.
+
+    ollama는 모델 이름이 -cloud면 Ollama Cloud, 아니면 로컬로 라벨한다. OLLAMA_API_KEY가
+    있으면 함께 넘긴다. 로컬 모델은 키가 없어도 되고, 클라우드 모델은 로그인된 데몬을
+    거치거나 이 키로 인증한다.
+    """
     env = os.environ if env is None else env
     out: list[tuple[str, str, dict]] = []
     if have_cloud(env):
         out.append(("클라우드", CLOUD_MODEL, {}))
     if have_local(env):
-        out.append(("로컬", local_model(env), {"api_base": env.get("OLLAMA_API_BASE")}))
+        model = local_model(env)
+        label = "Ollama Cloud" if model.endswith("-cloud") else "로컬"
+        opts = {"api_base": env.get("OLLAMA_API_BASE")}
+        if env.get("OLLAMA_API_KEY"):
+            opts["api_key"] = env["OLLAMA_API_KEY"]
+        out.append((label, model, opts))
     return out
 
 
@@ -152,10 +162,11 @@ def extract_counting_retries(
     return review, retries["n"]
 
 
-def _backend_opts(label: str) -> tuple[bool, type]:
-    """백엔드에 맞는 (json_mode, 모델)을 고른다. 비-OpenAI 백엔드는 JSON 모드가 안전하고,
-    작은 로컬 모델은 정규화 모델이 더 안정적이다."""
-    if label == "로컬":
+def _backend_opts(model: str) -> tuple[bool, type]:
+    """모델에 맞는 (json_mode, response_model)을 고른다. ollama(로컬·클라우드)는
+    tool calling이 흔들려 JSON 모드가 안전하고, 정규화 모델로 사소한 흔들림을 흡수한다.
+    gemini는 기본 모드로 충분하다."""
+    if model.startswith("ollama/"):
         return True, NormalizedReview
     return False, Review
 
@@ -173,7 +184,7 @@ def main() -> int:
     print("=== 1. 검증된 Review 한 개 뽑기 ===")
     print(f"리뷰: {REVIEW_TEXT}")
     for label, model, kwargs in backends:
-        json_mode, rm = _backend_opts(label)
+        json_mode, rm = _backend_opts(model)
         try:
             review, retries = extract_counting_retries(
                 REVIEW_TEXT, model, response_model=rm, json_mode=json_mode, **kwargs
