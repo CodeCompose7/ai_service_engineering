@@ -21,6 +21,8 @@
 - VSCode.
 - VSCode 확장 Dev Containers를 설치합니다. (확장 ID `ms-vscode-remote.remote-containers`)
 
+로컬 모델을 쓸 계획이면 호스트에 Ollama도 설치합니다. 컨테이너가 아니라 호스트에서 돌고, 클라우드 프로바이더만 쓸 거면 필요 없습니다. 설치와 모델 받기는 5.2에서 다룹니다.
+
 ## 3. 개발 컨테이너와 실행 컨테이너
 
 내 컴퓨터 위에서 Docker가 컨테이너를 띄웁니다. 컨테이너는 두 종류의 Dockerfile에서 나옵니다.
