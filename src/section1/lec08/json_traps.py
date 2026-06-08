@@ -21,7 +21,7 @@ import os
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 CLOUD_MODEL = "gemini/gemini-2.5-flash"
 DEFAULT_LOCAL_MODEL = "gemma4:12b"
@@ -35,11 +35,32 @@ PROMPT = (
 
 
 class Review(BaseModel):
-    """받고 싶은 출력 계약. 우리가 정의한 이 모델을 출력이 따라야 한다."""
+    """받고 싶은 출력. 우리가 정의한 이 모델을 출력이 따라야 한다.
+
+    Field의 description은 model_json_schema()에 그대로 실려, 프롬프트에 스키마를 넣을 때
+    모델에게 각 필드의 뜻을 함께 알려 준다.
+    """
+
+    sentiment: Literal["긍정", "부정", "중립"] = Field(description="리뷰의 전반적 감정")
+    confidence: float = Field(ge=0.0, le=1.0, description="판단 확신도, 0~1 실수")
+    keywords: list[str] = Field(description="리뷰의 핵심 키워드")
+
+
+class NormalizedReview(BaseModel):
+    """들어오는 값을 다듬어 사소한 흔들림을 흡수하는 변형.
+
+    검증 전에 sentiment의 앞뒤 공백을 떼어, 로컬 모델이 자주 내는 ' 중립' 같은 값을
+    재호출 없이 통과시킨다.
+    """
 
     sentiment: Literal["긍정", "부정", "중립"]
-    confidence: float = Field(ge=0.0, le=1.0)  # 타입뿐 아니라 0~1 범위까지 제약
+    confidence: float = Field(ge=0.0, le=1.0)
     keywords: list[str]
+
+    @field_validator("sentiment", mode="before")
+    @classmethod
+    def _strip_sentiment(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 def schema_prompt() -> str:

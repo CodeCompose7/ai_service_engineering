@@ -52,12 +52,12 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 class Review(BaseModel):
-    sentiment: Literal["긍정", "부정", "중립"]
-    confidence: float = Field(ge=0.0, le=1.0)  # 타입뿐 아니라 0~1 범위까지
-    keywords: list[str]
+    sentiment: Literal["긍정", "부정", "중립"] = Field(description="리뷰의 전반적 감정")
+    confidence: float = Field(ge=0.0, le=1.0, description="판단 확신도, 0~1 실수")
+    keywords: list[str] = Field(description="리뷰의 핵심 키워드")
 ```
 
-이 `Review`가 이 단위의 산출물입니다. 타입만이 아니라 허용값·범위까지 모델에 담깁니다.
+이 `Review`가 이 단위의 산출물입니다. 타입만이 아니라 허용값·범위·필드 설명까지 모델에 담깁니다. `Field(description=...)`은 잠시 뒤 스키마를 프롬프트에 넣을 때 모델에게 각 필드의 뜻을 함께 알려 줍니다.
 
 | 필드 | 타입 | 따라야 할 약속 |
 | --- | --- | --- |
@@ -76,17 +76,17 @@ schema = json.dumps(Review.model_json_schema(), ensure_ascii=False)
 prompt = f"아래 JSON 스키마를 그대로 따르는 JSON으로만 답해라.\n스키마: {schema}\n리뷰: {REVIEW_TEXT}"
 ```
 
-`model_json_schema()`가 만들어 주는 스키마에는 타입뿐 아니라 허용값과 범위까지 들어 있습니다.
+`model_json_schema()`가 만들어 주는 스키마에는 타입뿐 아니라 허용값·범위·필드 설명까지 들어 있습니다.
 
 ```text
 스키마: {"properties": {
-  "sentiment":  {"enum": ["긍정", "부정", "중립"], "type": "string"},
-  "confidence": {"minimum": 0.0, "maximum": 1.0, "type": "number"},
-  "keywords":   {"items": {"type": "string"}, "type": "array"}},
+  "sentiment":  {"description": "리뷰의 전반적 감정", "enum": ["긍정","부정","중립"], "type": "string"},
+  "confidence": {"description": "판단 확신도, 0~1 실수", "minimum": 0.0, "maximum": 1.0, "type": "number"},
+  "keywords":   {"description": "리뷰의 핵심 키워드", "items": {"type": "string"}, "type": "array"}},
   "required": ["sentiment", "confidence", "keywords"], "type": "object"}
 ```
 
-스키마를 줘도 모델이 항상 지키는 것은 아니지만, 형식 설명을 모델 정의와 일치시키는 첫걸음입니다.
+모델에 적은 `Field(description=...)`이 그대로 스키마에 실립니다. 형식을 손으로 또 적지 않고, 모델 정의 한곳에서 프롬프트까지 일치시키는 첫걸음입니다. 물론 스키마를 줘도 모델이 항상 지키는 것은 아닙니다.
 
 ## 5. 두 층의 함정 — 파싱과 검증
 
@@ -214,9 +214,43 @@ flowchart TD
 
 5절에서 로컬이 낸 `" 중립"`은 1회차에 `sentiment: Input should be '긍정', '부정' or '중립'`으로 걸립니다. 그 오류를 되먹여 다시 물으면 다음 회차에 고쳐집니다. 다만 로컬의 실패는 간헐적이라, 어떤 실행은 한 번에 통과하고 어떤 실행은 한두 번 더 물어야 합니다.
 
-## 9. 손으로 다 짜기엔 지저분합니다
+## 9. Pydantic을 더 활용합니다
 
-여기까지 우리는 가드(파싱)·JSON 모드(파싱)·재시도(검증)를 손으로 엮었습니다. 호출마다 이걸 다 챙기면 코드가 금세 지저분해집니다.
+Pydantic은 막는 것만이 아니라, 흔한 흔들림을 흡수하거나 파싱·검증을 한 줄로 묶는 데도 씁니다.
+
+### 9.1. validator로 정규화하기
+
+5절에서 로컬이 낸 `" 중립"`(앞 공백)은 검증에서 막혔습니다. 재시도로 다시 묻는 대신, 들어올 때 공백을 떼어 흡수할 수도 있습니다. `field_validator`는 검증 직전에 값을 다듬습니다.
+
+```python
+from pydantic import field_validator
+
+class NormalizedReview(BaseModel):
+    sentiment: Literal["긍정", "부정", "중립"]
+    confidence: float = Field(ge=0.0, le=1.0)
+    keywords: list[str]
+
+    @field_validator("sentiment", mode="before")
+    @classmethod
+    def strip_sentiment(cls, v):
+        return v.strip() if isinstance(v, str) else v
+```
+
+이제 `" 중립"`은 `"중립"`으로 다듬어져 통과합니다. 다만 정규화는 좁게 둡니다. 공백·대소문자 같은 사소한 차이만 흡수하고, `"아주 부정"` 같은 엉뚱한 값까지 받아 주면 계약이 무너집니다. 재호출 없이 흡수할 수 있는 실패와, 다시 물어야 하는 실패를 나누는 셈입니다.
+
+### 9.2. 파싱과 검증을 한 줄로
+
+`json.loads` 뒤에 `Review(**data)`로 두 번 거칠 것 없이, Pydantic이 JSON 문자열을 바로 받습니다.
+
+```python
+review = Review.model_validate_json(extract_json(text))
+```
+
+가드로 모양을 다듬어 넘기면 파싱과 검증이 한 줄로 끝나고, 모양이 틀렸든 값이 틀렸든 `ValidationError` 하나로 잡힙니다.
+
+## 10. 손으로 다 짜기엔 지저분합니다
+
+여기까지 우리는 가드(파싱)·JSON 모드(파싱)·재시도와 정규화(검증)를 손으로 엮었습니다. 호출마다 이걸 다 챙기면 코드가 금세 지저분해집니다.
 
 - 앞뒤 설명을 떼고 코드펜스를 벗깁니다.
 - 파싱에 실패하면 다시 호출합니다.
@@ -224,10 +258,11 @@ flowchart TD
 
 바로 이 반복을 라이브러리가 대신해 주는 것이 다음 단위의 instructor입니다. 여기서는 프롬프트만으로 구조화 출력을 받는 것은 생각보다 깨지기 쉽다는 점과, 원하는 구조를 Pydantic 모델로 미리 선언해 둔다는 점을 챙겨갑니다.
 
-## 10. 정리
+## 11. 정리
 
 - 서비스 안에서 LLM 출력은 다음 단계의 입력이라, 자유 문장이 아니라 구조화 데이터가 필요합니다.
 - 원하는 구조는 Pydantic 모델로 선언해 출력의 기준으로 삼고, 스키마는 `model_json_schema()`로 뽑아 프롬프트에 넣습니다.
 - 실패는 두 층입니다. 파싱(모양)과 검증(값)이며, 가드와 JSON 모드는 파싱을 돕고 검증은 Pydantic이 잡습니다.
+- Pydantic은 막기만 하지 않습니다. `field_validator`로 사소한 흔들림을 흡수하고, `model_validate_json`으로 파싱·검증을 한 줄로 묶습니다.
 - 같은 코드라도 로컬 모델에서 실패가 더 잦고, JSON 모드도 백엔드마다 지원이 다릅니다.
 - 가드·재시도를 매번 손으로 짜는 대신 다음 단위에서 instructor로 해결합니다.

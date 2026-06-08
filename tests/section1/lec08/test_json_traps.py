@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from section1.lec08.json_traps import (
     REVIEW_TEXT,
+    NormalizedReview,
     Review,
     extract_json,
     parse_with_guard,
@@ -74,6 +75,24 @@ def test_validate_reports_first_error():
     ok, err = validate({"sentiment": "약간 부정", "confidence": 0.5, "keywords": []})
     assert ok is False
     assert "sentiment" in err
+
+
+def test_normalized_review_absorbs_leading_space():
+    # 공백이 붙은 ' 중립'도 정규화되어 통과한다
+    review = NormalizedReview(sentiment=" 중립 ", confidence=0.9, keywords=["배송"])
+    assert review.sentiment == "중립"
+
+
+def test_strict_review_still_rejects_leading_space():
+    # 정규화 없는 Review는 같은 값을 막는다
+    with pytest.raises(ValidationError):
+        Review(sentiment=" 중립", confidence=0.9, keywords=["배송"])
+
+
+def test_normalized_review_still_rejects_wrong_value():
+    # 공백만 다듬을 뿐, 엉뚱한 값은 여전히 막는다
+    with pytest.raises(ValidationError):
+        NormalizedReview(sentiment="아주 부정", confidence=0.9, keywords=[])
 
 
 def test_schema_prompt_embeds_generated_schema():
