@@ -7,10 +7,12 @@ import pytest
 from pydantic import ValidationError
 
 from section1.lec08.json_traps import (
+    REVIEW_TEXT,
     Review,
     extract_json,
     parse_with_guard,
     raw_parses,
+    schema_prompt,
     targets,
     validate,
 )
@@ -72,6 +74,15 @@ def test_validate_reports_first_error():
     ok, err = validate({"sentiment": "약간 부정", "confidence": 0.5, "keywords": []})
     assert ok is False
     assert "sentiment" in err
+
+
+def test_schema_prompt_embeds_generated_schema():
+    prompt = schema_prompt()
+    # 모델에서 뽑은 스키마가 프롬프트에 들어간다. 필드 이름과 허용값이 보인다.
+    assert "sentiment" in prompt
+    assert "confidence" in prompt
+    assert "긍정" in prompt
+    assert REVIEW_TEXT in prompt
 
 
 def test_targets_detects_backends():
