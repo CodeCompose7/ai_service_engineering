@@ -56,6 +56,7 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | 기본 프로바이더 | Google AI Studio (Gemini) — 무료 티어 권장 기본 |
 | 보조 프로바이더 | OpenAI Platform, Claude Platform |
 | 로컬 모델 (옵션) | Ollama — 호스트 실행 + `OLLAMA_HOST` 연결. **tool calling 지원 모델 사용**(예: Llama 3.x / Qwen2.5 계열). 미지원 모델은 LiteLLM이 JSON 모드 tool call로 폴백 |
+| 문서 로딩 | **PyMuPDF**(fitz) — PDF·HTML을 한 도구로 추출, 한국어 함정(줄바꿈·NFC·스캔) 처리 |
 | 임베딩 | sentence-transformers 직접(HF) — `BAAI/bge-m3` 기본(다국어, CPU 가능), 한국어 경량 대안 `ko-sroberta`. **LiteLLM 미경유 예외** |
 | 벡터DB | Chroma (영속 모드) |
 | 구조화 출력 | Pydantic v2 + instructor |
@@ -96,7 +97,7 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 | 단위 | 분 | 핵심 내용 | 산출물 |
 | --- | --- | --- | --- |
 | 데이터 수집·정제 | 16 | CSV/웹/API 수집 + pandas 경량 정제 | 정제 스크립트 |
-| 문서 로딩 | 15 | PDF/HTML 추천 도구 1개 + 한국어 PDF 함정 | 텍스트 추출기 |
+| 문서 로딩 | 15 | PyMuPDF로 PDF·HTML 로딩 + 한국어 함정 | 텍스트 추출기 |
 | 청킹 | 18 | RecursiveCharacterTextSplitter, overlap, 의미 단위 | 청킹 유틸 |
 | 임베딩 | 15 | sentence-transformers(HF) `bge-m3`, 유사도 직관 | 임베딩 함수 |
 | 벡터DB Chroma | 13 | add/query, 메타데이터 필터 | Chroma 컬렉션 |
