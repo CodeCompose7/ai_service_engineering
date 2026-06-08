@@ -4,12 +4,12 @@ lec08에서 손으로 짠 파싱·정리·검증·재시도를 instructor가 대
 response_model로 넘기면, 검증을 통과한 객체를 바로 돌려받는다. instructor도 LiteLLM
 위에서 돌므로, 모델 문자열만 바꾸면 클라우드(gemini)와 로컬(ollama)을 같은 코드로 오간다.
 
-로컬을 안정적으로 돌리려면 S1에서 본 두 가지가 함께 필요하다.
-- JSON 모드: instructor 기본 모드는 tool calling인데, lec07에서 봤듯 로컬은 tool calling이
-  약하다. JSON 모드로 붙이면 그 약점을 피한다.
-- 정규화 validator: lec08의 field_validator로 ' 중립' 같은 공백 흔들림을 검증 전에 흡수한다.
-
 extract_review가 이 단위의 산출물이다. 문자열을 검증된 Review로 뽑아내는 안전한 함수다.
+extract_reviews는 response_model=list[Review]로 한 호출에서 여러 객체를 받는다.
+
+백엔드를 바꿀 때는 instructor의 모드만 손본다. 기본 모드는 tool calling이라 OpenAI·gemini엔
+잘 맞지만, ollama 같은 백엔드는 모델마다 tool calling 지원이 달라 JSON 모드가 안전하다
+(lec07). 작은 로컬 모델은 lec08의 정규화 모델을 곁들이면 더 안정적이다.
 
 실행:
     uv run python src/section1/lec09/extract.py
@@ -25,6 +25,10 @@ from pydantic import BaseModel, Field, field_validator
 CLOUD_MODEL = "gemini/gemini-2.5-flash"
 DEFAULT_LOCAL_MODEL = "gemma4:12b"
 REVIEW_TEXT = "배송은 빨랐는데 포장이 너무 허술했어요."
+MULTI_TEXT = (
+    "배송이 정말 빨라서 좋았어요. 다만 고객센터 응대는 불친절했습니다. "
+    "가격은 그냥 무난한 편이에요."
+)
 
 
 class Review(BaseModel):
@@ -82,6 +86,29 @@ def extract_review(
     )
 
 
+def extract_reviews(
+    text: str,
+    model: str = CLOUD_MODEL,
+    json_mode: bool = False,
+    max_retries: int = 2,
+    **kwargs,
+) -> list[Review]:
+    """글에서 여러 Review를 목록으로 뽑는다. response_model=list[Review].
+
+    instructor에 list[Model]을 주면 한 호출로 여러 객체를 받는다. 한 글에 여러 측면이
+    섞여 있을 때 측면별로 검증된 객체 목록을 돌려준다.
+    """
+    client = make_client(json_mode=json_mode)
+    prompt = f"다음 글에 담긴 리뷰들을 측면별로 각각 분석해 목록으로 만들어줘.\n{text}"
+    return client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        response_model=list[Review],
+        max_retries=max_retries,
+        **kwargs,
+    )
+
+
 def have_cloud(env: dict | None = None) -> bool:
     env = os.environ if env is None else env
     return bool(env.get("GEMINI_API_KEY"))
@@ -125,18 +152,12 @@ def extract_counting_retries(
     return review, retries["n"]
 
 
-def _run(backends, response_model, json_mode) -> None:
-    for label, model, kwargs in backends:
-        try:
-            review, retries = extract_counting_retries(
-                REVIEW_TEXT, model, response_model=response_model, json_mode=json_mode, **kwargs
-            )
-        except Exception as exc:
-            print(f"\n[{label}] {model}")
-            print(f"  최종 실패: {type(exc).__name__} (max_retries 소진)")
-            continue
-        print(f"\n[{label}] {model}  (재시도 {retries}회)")
-        print(f"  → {review!r}")
+def _backend_opts(label: str) -> tuple[bool, type]:
+    """백엔드에 맞는 (json_mode, 모델)을 고른다. 비-OpenAI 백엔드는 JSON 모드가 안전하고,
+    작은 로컬 모델은 정규화 모델이 더 안정적이다."""
+    if label == "로컬":
+        return True, NormalizedReview
+    return False, Review
 
 
 def main() -> int:
@@ -149,12 +170,32 @@ def main() -> int:
         print("gemini 키나 ollama 중 하나가 필요합니다. .env를 확인하세요.")
         return 1
 
-    print("=== 1. 기본 모드(tool calling) + Review ===")
+    print("=== 1. 검증된 Review 한 개 뽑기 ===")
     print(f"리뷰: {REVIEW_TEXT}")
-    _run(backends, response_model=Review, json_mode=False)
+    for label, model, kwargs in backends:
+        json_mode, rm = _backend_opts(label)
+        try:
+            review, retries = extract_counting_retries(
+                REVIEW_TEXT, model, response_model=rm, json_mode=json_mode, **kwargs
+            )
+        except Exception as exc:
+            print(f"\n[{label}] {model}\n  실패: {type(exc).__name__}")
+            continue
+        print(f"\n[{label}] {model}  (재시도 {retries}회)")
+        print(f"  → {review!r}")
 
-    print("\n\n=== 2. JSON 모드 + 정규화 validator (로컬에 안정적) ===")
-    _run(backends, response_model=NormalizedReview, json_mode=True)
+    # 여러 객체(list)는 tool calling 모드가 흔들리므로 모든 백엔드에서 JSON 모드를 쓴다.
+    print("\n\n=== 2. 여러 개를 한 번에 — list[Review] (JSON 모드) ===")
+    print(f"글: {MULTI_TEXT}")
+    for label, model, kwargs in backends:
+        try:
+            reviews = extract_reviews(MULTI_TEXT, model=model, json_mode=True, **kwargs)
+        except Exception as exc:
+            print(f"\n[{label}] {model}\n  실패: {type(exc).__name__}")
+            continue
+        print(f"\n[{label}] {model} — {len(reviews)}개")
+        for review in reviews:
+            print(f"  → {review!r}")
     return 0
 
 
