@@ -446,6 +446,24 @@ def sentiment(text):
 
 [prompt_patterns.py](../../../src/section1/lec05/prompt_patterns.py)는 패턴이 출력을 실제로 어떻게 바꾸는지 두 백엔드(gemini와 ollama)로 보여줍니다. 빈약한 프롬프트와 설계된 프롬프트, 그리고 few-shot 유무를 같은 입력으로 비교합니다.
 
+[prompt_patterns.py](../../../src/section1/lec05/prompt_patterns.py)의 구조입니다. `main`이 두 데모를 부르고, 데모는 메시지를 만드는 함수와 `call`로 모델을 호출하며, `call`은 프로바이더 설정 헬퍼에 기댑니다.
+
+```mermaid
+flowchart TB
+  MAIN["main()<br/>대상 정하고 데모 실행"]
+  MAIN --> D1["demo_bare_vs_designed<br/>빈약 vs 설계"]
+  MAIN --> D2["demo_fewshot<br/>zero-shot vs few-shot"]
+  D1 --> MSG["메시지 빌더<br/>bare_classify · designed_classify<br/>sentiment_messages"]
+  D2 --> MSG
+  D1 --> CALL["call<br/>litellm.completion 호출"]
+  D2 --> CALL
+  MSG --> CALL
+  CALL --> CFG["프로바이더 설정<br/>available_providers · target_providers<br/>model_for · api_base_kwargs"]
+  classDef default rx:8,ry:8;
+```
+
+이어지는 흐름은 실행 시 데이터가 거치는 경로입니다.
+
 ```mermaid
 flowchart TB
   ENV[".env 읽기<br/>프로바이더 탐지"] --> T["대상 정하기<br/>gemini · ollama"]

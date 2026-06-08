@@ -451,6 +451,19 @@ flowchart TB
 
 나머지 부분, 즉 `.env` 파싱이나 시도 순서를 만드는 `provider_order`, 예외를 잡아 다음으로 넘기는 처리는 위 골격을 거드는 배선일 뿐이라 지금은 그림으로 넘어가도 됩니다.
 
+[smoke_test.py](../../../src/section1/lec01/smoke_test.py)의 코드 구조입니다. `main`이 `prepared_order`로 시도 순서를 받고, 순서를 돌며 `model_and_kwargs`로 호출 인자를 만들어 `complete`로 한 번씩 호출합니다.
+
+```mermaid
+flowchart TB
+  MAIN["main — 진입점"]
+  MAIN --> PO["prepared_order<br/>시도 순서 만들기"]
+  PO --> AP["available_providers<br/>준비된 프로바이더 탐지"]
+  PO --> OR["provider_order<br/>DEFAULT_PROVIDER를 맨 앞에"]
+  MAIN --> MK["model_and_kwargs<br/>모델 문자열·인자 구성"]
+  MAIN --> CP["complete<br/>LiteLLM 한 번 호출"]
+  classDef default rx:8,ry:8;
+```
+
 #### 6.1.2. smoke_test_2.py — 준비된 곳 전부 호출하기
 
 프로바이더를 여럿 준비했다면 전부 닿는지 한 번에 확인하고 싶을 수 있습니다. [smoke_test_2.py](../../../src/section1/lec01/smoke_test_2.py)는 첫 성공에서 멈추지 않고 준비된 곳을 모두 호출한 뒤, 프로바이더별 성패를 마지막에 요약해 보여줍니다. 골격은 같고, 그림에서 보듯 호출 결과를 모아 두고 다음 프로바이더로 계속 넘어간다는 점만 다릅니다.
@@ -468,6 +481,18 @@ flowchart TB
   classDef default rx:8,ry:8;
   classDef key fill:#eaf2ff,stroke:#4a78c0;
   class CALL,SUM key;
+```
+
+[smoke_test_2.py](../../../src/section1/lec01/smoke_test_2.py)의 코드 구조입니다. 탐지·정렬·호출은 `smoke_test`에서 그대로 가져다 쓰고, `main`이 프로바이더를 순회하며 결과를 모은 뒤 `print_summary`로 성패를 요약합니다.
+
+```mermaid
+flowchart TB
+  MAIN["main — 진입점"]
+  MAIN --> PO["prepared_order<br/>smoke_test에서 가져옴"]
+  MAIN --> LOOP["프로바이더 순회<br/>model_and_kwargs · complete"]
+  LOOP --> REC["성패 결과 모으기"]
+  REC --> PS["print_summary<br/>프로바이더별 성패 요약"]
+  classDef default rx:8,ry:8;
 ```
 
 ```bash

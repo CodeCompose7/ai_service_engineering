@@ -35,6 +35,24 @@ lec08의 한 단위가 instructor에서는 인자 하나로 줄어듭니다. 그
 
 ## 3. 추출 함수 만들기
 
+[extract.py](../../../src/section1/lec09/extract.py)의 구조입니다. `main`이 추출 세 가지를 보여주고, 모든 추출은 `make_client`로 instructor를 붙여 `response_model`로 검증합니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 데모 1·2·3"]
+  MAIN --> ER["extract_review<br/>검증된 Review 한 개"]
+  MAIN --> ERS["extract_reviews<br/>list[Review] 여러 개"]
+  MAIN --> EP["extract_report<br/>ReviewReport 중첩"]
+  ESF["extract_review_safe<br/>모델 폴백"] --> ER
+  ER --> MC["make_client<br/>TOOLS · JSON 모드"]
+  ERS --> MC
+  EP --> MC
+  MC --> INST["instructor + LiteLLM"]
+  MODELS["Pydantic 모델<br/>Review · NormalizedReview<br/>StrictKeywordReview · ReviewReport"]
+  ER -. response_model .-> MODELS
+  classDef default rx:8,ry:8;
+```
+
 받고 싶은 구조는 lec08의 `Review`를 그대로 씁니다. instructor를 LiteLLM에 붙이고 `response_model`로 그 모델을 넘기면, 검증된 객체를 바로 돌려받는 함수가 됩니다.
 
 ```python

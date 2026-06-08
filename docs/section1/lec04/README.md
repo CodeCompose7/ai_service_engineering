@@ -124,6 +124,17 @@ flowchart TB
 
 [first_call.py](../../../src/section1/lec04/first_call.py)는 준비된 백엔드(gemini와 ollama)를 골라 같은 코드로 세 가지를 보여줍니다. 호출 코드는 하나뿐이고, 모델 문자열만 백엔드마다 다릅니다.
 
+[first_call.py](../../../src/section1/lec04/first_call.py)의 구조입니다. `main()`이 네 데모를 부르고, 데모들은 메시지를 만드는 함수와 호출 함수를 거쳐, 맨 아래의 프로바이더 설정으로 모델 문자열과 호스트 주소를 정합니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() · parse_args()<br/>대상 정하고 데모 실행"]
+  MAIN --> DEMO["demo_first_call · demo_system_message<br/>demo_multiturn · demo_latency(measure)"]
+  DEMO --> CORE["build_messages · conversation<br/>call · usage_line"]
+  CORE --> CFG["프로바이더 설정<br/>available_providers · target_providers<br/>model_for · api_base_kwargs"]
+  classDef default rx:8,ry:8;
+```
+
 ```mermaid
 flowchart TB
   ENV[".env 읽기<br/>프로바이더 탐지"] --> T["대상 정하기<br/>gemini · ollama"]

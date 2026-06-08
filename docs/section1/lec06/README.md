@@ -168,6 +168,30 @@ flowchart TD
 
 [provider_swap.py](../../../src/section1/lec06/provider_swap.py)는 앞에서 본 셋을 한 번에 보여줍니다. 프로바이더 교체 비교, 래퍼의 차이 흡수, 폴백입니다.
 
+[provider_swap.py](../../../src/section1/lec06/provider_swap.py)의 구조입니다. `main()`이 세 데모를 차례로 부르고, 각 데모는 핵심 함수를 거쳐 프로바이더 설정 위에서 동작합니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — .env 읽고 데모 실행"]
+  MAIN --> DS["demo_swap<br/>교체 비교"]
+  MAIN --> DW["demo_wrapper<br/>래퍼 흡수"]
+  MAIN --> DF["demo_fallback<br/>폴백"]
+  DS --> CORE
+  DW --> CORE
+  DF --> CORE
+  subgraph CORE["핵심 함수"]
+    CHAT["chat · chat_with_fallback<br/>프로바이더 무관 호출"]
+    SAFE["safe_kwargs<br/>못 받는 파라미터 제거"]
+    COMP["_complete · _cost<br/>호출·비용 계산"]
+  end
+  CORE --> CFG
+  subgraph CFG["프로바이더 설정"]
+    PROV["available_providers · model_for<br/>api_base_kwargs · provider_models · provider_of"]
+  end
+  HELP["유틸: _quiet_litellm · _oneline"]
+  classDef default rx:8,ry:8;
+```
+
 ```mermaid
 flowchart TB
   ENV[".env 읽기<br/>프로바이더 탐지"] --> D1["1. 교체 비교<br/>본문·토큰·비용"]

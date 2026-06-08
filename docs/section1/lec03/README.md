@@ -146,6 +146,23 @@ flowchart TB
 
 여기서 핵심은 `safe_sampling_kwargs`입니다. 원하는 샘플링 값을 그대로 보내지 않고, 프로바이더가 받을 수 있는 형태로 보정합니다. top_k를 받지 않는 OpenAI에는 top_k를 빼고, temperature는 프로바이더 상한을 넘지 않게 잘라 줍니다. §4의 표를 코드로 옮긴 것이 이 함수입니다.
 
+[sampling_compare.py](../../../src/section1/lec03/sampling_compare.py)의 코드 구조입니다. `main`이 데모 두 개를 부르고, 둘 다 `safe_sampling_kwargs`를 거쳐 프로바이더 설정으로 내려갑니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 데모 실행"]
+  MAIN --> PV["preview_params<br/>호출 없이 보낼 값 미리보기"]
+  MAIN --> CT["compare_temperature<br/>온도 바꿔 반복 호출"]
+  PV --> SK["safe_sampling_kwargs<br/>프로바이더별 보정"]
+  CT --> SK
+  SK --> STK["supports_top_k<br/>OpenAI엔 top_k 제거"]
+  SK --> MT["max_temperature<br/>Claude는 온도 상한 적용"]
+  MAIN --> CFG["프로바이더 설정<br/>available_providers · provider_order<br/>demo_provider · model_for · api_base_kwargs"]
+  classDef default rx:8,ry:8;
+  classDef key fill:#eaf2ff,stroke:#4a78c0;
+  class SK key;
+```
+
 변화를 또렷하게 보려고 "1부터 100 사이의 정수 하나"를 묻습니다. 숫자는 같고 다름이 한눈에 보이기 때문입니다.
 
 ```bash
@@ -178,6 +195,16 @@ uv run python src/section1/lec03/sampling_compare.py
 ### 6.2. ask — 한 번 물어보기와 파라미터 실험
 
 ask는 `DEFAULT_PROVIDER`로 한 번 호출해 답만 출력합니다. 질문과 함께 `temperature`·`top_p`·`top_k`를 옵션으로 받고, sampling_compare의 보정을 그대로 거치므로 OpenAI에 `--top-k`를 줘도 자동으로 빠집니다.
+
+[ask.py](../../../src/section1/lec03/ask.py)의 코드 구조입니다. `parse_args`로 질문과 옵션을 받아 `main`이 한 번만 호출합니다. 탐지·보정 함수는 sampling_compare에서 가져다 씁니다.
+
+```mermaid
+flowchart TB
+  PA["parse_args<br/>질문·샘플링 옵션 파싱"] --> MAIN["main()"]
+  MAIN --> SK["safe_sampling_kwargs<br/>(sampling_compare 공유)<br/>프로바이더에 맞게 보정"]
+  SK --> CALL["litellm.completion<br/>단일 호출 후 답 출력"]
+  classDef default rx:8,ry:8;
+```
 
 ```bash
 uv run python src/section1/lec03/ask.py
