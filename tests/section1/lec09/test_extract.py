@@ -11,6 +11,9 @@ from section1.lec09.extract import (
     CLOUD_MODEL,
     NormalizedReview,
     Review,
+    ReviewReport,
+    StrictKeywordReview,
+    extract_review_safe,
     have_cloud,
     have_local,
     local_model,
@@ -88,6 +91,42 @@ def test_targets_omits_api_key_when_absent():
     env = {"OLLAMA_API_BASE": "http://h:11434", "OLLAMA_MODEL": "gemma4:12b"}
     _, _, opts = targets(env)[0]
     assert "api_key" not in opts
+
+
+def test_strict_keyword_review_rejects_multiword_keyword():
+    # 한 단어 규칙을 어기면 검증에서 막힌다 (instructor 재시도를 부른다)
+    with pytest.raises(ValidationError):
+        StrictKeywordReview(sentiment="부정", confidence=0.8, keywords=["배송", "포장 허술"])
+
+
+def test_strict_keyword_review_accepts_single_words():
+    review = StrictKeywordReview(sentiment="부정", confidence=0.8, keywords=["배송", "포장"])
+    assert review.keywords == ["배송", "포장"]
+
+
+def test_review_report_nests_reviews():
+    report = ReviewReport(
+        overall="중립",
+        aspects=[Review(sentiment="긍정", confidence=0.9, keywords=["배송"])],
+        summary="대체로 무난",
+    )
+    assert report.aspects[0].sentiment == "긍정"
+    assert report.overall == "중립"
+
+
+def test_review_report_validates_nested_aspect():
+    # 안쪽 Review의 제약(허용값)도 함께 검증된다
+    with pytest.raises(ValidationError):
+        ReviewReport(
+            overall="중립",
+            aspects=[Review(sentiment="아주 긍정", confidence=0.9, keywords=[])],
+            summary="x",
+        )
+
+
+def test_extract_review_safe_raises_on_empty_models():
+    with pytest.raises(ValueError):
+        extract_review_safe("텍스트", models=[])
 
 
 def test_backend_opts_picks_json_for_ollama():

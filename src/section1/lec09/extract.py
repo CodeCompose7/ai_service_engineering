@@ -49,6 +49,34 @@ class NormalizedReview(Review):
         return value.strip() if isinstance(value, str) else value
 
 
+class StrictKeywordReview(Review):
+    """검증 규칙을 더한 예. keywords를 한 단어로 제한한다.
+
+    규칙을 어기면(예: '포장 허술') ValueError를 던지고, instructor가 그 오류 메시지를
+    모델에 돌려주며 재시도한다. 타입뿐 아니라 우리가 정한 규칙으로 재시도를 부를 수 있다.
+    """
+
+    @field_validator("keywords")
+    @classmethod
+    def _single_word(cls, value):
+        for keyword in value:
+            if " " in keyword.strip():
+                raise ValueError(f"키워드는 한 단어여야 합니다: '{keyword}'")
+        return value
+
+
+class ReviewReport(BaseModel):
+    """글 전체를 한 번에 정리하는 중첩 모델. 총평·측면별 분석·요약을 함께 담는다.
+
+    aspects가 list[Review]로 중첩돼, instructor가 한 호출로 바깥 객체와 안쪽 목록을
+    모두 채워 검증한다.
+    """
+
+    overall: Literal["긍정", "부정", "중립"] = Field(description="글 전체의 총평")
+    aspects: list[Review] = Field(description="측면별 분석 목록")
+    summary: str = Field(description="글 전체를 한 줄로 요약")
+
+
 def make_client(json_mode: bool = False):
     """instructor를 LiteLLM에 붙인다. json_mode면 tool calling 대신 JSON 모드를 쓴다.
 
@@ -107,6 +135,46 @@ def extract_reviews(
         max_retries=max_retries,
         **kwargs,
     )
+
+
+def extract_report(
+    text: str,
+    model: str = CLOUD_MODEL,
+    json_mode: bool = False,
+    max_retries: int = 2,
+    **kwargs,
+) -> ReviewReport:
+    """글을 ReviewReport(총평+측면별+요약)로 한 번에 뽑는다. 중첩 모델도 한 호출로 받는다."""
+    client = make_client(json_mode=json_mode)
+    prompt = f"다음 글을 분석해 총평·측면별 분석·한 줄 요약으로 정리해줘.\n{text}"
+    return client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        response_model=ReviewReport,
+        max_retries=max_retries,
+        **kwargs,
+    )
+
+
+def extract_review_safe(text: str, models: list[str], **kwargs) -> Review:
+    """모델 목록을 차례로 시도하고, 검증까지 실패하면 다음 모델로 폴백한다.
+
+    lec06의 폴백을 구조화 출력으로 옮긴 것이다. ollama 백엔드는 JSON 모드·정규화 모델로
+    맞춘다. 모두 실패하면 마지막 예외를 올려, 호출부가 기본값 등으로 대응하게 한다.
+    """
+    last_exc: Exception | None = None
+    for model in models:
+        json_mode = model.startswith("ollama/")
+        response_model = NormalizedReview if json_mode else Review
+        try:
+            return extract_review(
+                text, model=model, response_model=response_model, json_mode=json_mode, **kwargs
+            )
+        except Exception as exc:
+            last_exc = exc
+    if last_exc is not None:
+        raise last_exc
+    raise ValueError("models가 비어 있습니다")
 
 
 def have_cloud(env: dict | None = None) -> bool:
@@ -207,6 +275,18 @@ def main() -> int:
         print(f"\n[{label}] {model} — {len(reviews)}개")
         for review in reviews:
             print(f"  → {review!r}")
+
+    # 중첩 모델도 복잡한 스키마라 JSON 모드로 받는다.
+    print("\n\n=== 3. 중첩 모델 — ReviewReport ===")
+    print(f"글: {MULTI_TEXT}")
+    for label, model, kwargs in backends:
+        try:
+            report = extract_report(MULTI_TEXT, model=model, json_mode=True, **kwargs)
+        except Exception as exc:
+            print(f"\n[{label}] {model}\n  실패: {type(exc).__name__}")
+            continue
+        print(f"\n[{label}] {model} — 총평 {report.overall}, 측면 {len(report.aspects)}개")
+        print(f"  요약: {report.summary}")
     return 0
 
 
