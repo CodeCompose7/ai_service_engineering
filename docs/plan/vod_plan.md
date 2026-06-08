@@ -55,7 +55,7 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | LLM 접근 | **LiteLLM** 단일 인터페이스로 멀티 프로바이더 |
 | 기본 프로바이더 | Google AI Studio (Gemini) — 무료 티어 권장 기본 |
 | 보조 프로바이더 | OpenAI Platform, Claude Platform |
-| 로컬 모델 (옵션) | Ollama — 호스트 실행 + `OLLAMA_HOST` 연결. **tool calling 지원 모델 사용**(예: Llama 3.x / Qwen2.5 계열). 미지원 모델은 LiteLLM이 JSON 모드 tool call로 폴백 |
+| 로컬 모델 (옵션) | Ollama — 호스트 실행 + `OLLAMA_API_BASE` 연결(컨테이너에선 `host.docker.internal`). 로컬 무료, 또는 Ollama Cloud(`-cloud` 모델, `ollama signin`·`OLLAMA_API_KEY`). function calling은 모델마다 갈려, 약하거나 미지원이면 LiteLLM이 JSON 모드로 폴백 |
 | 문서 로딩 | **PyMuPDF**(fitz) — PDF·HTML을 한 도구로 추출, 한국어 함정(줄바꿈·NFC·스캔) 처리 |
 | 임베딩 | sentence-transformers 직접(HF) — `BAAI/bge-m3` 기본(다국어, CPU 가능), 한국어 경량 대안 `ko-sroberta`. **LiteLLM 미경유 예외** |
 | 벡터DB | Chroma (영속 모드) |
@@ -63,7 +63,7 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | 에이전트 | function calling + LangGraph |
 | 서빙 | FastAPI → 서빙용 Docker → Render / Railway |
 | 예제 도메인 | 가상 회사 "Acme" 사내 데이터 (위키/사규/계약서/문의) |
-| 패키지 | `requirements.txt` / `uv`, devcontainer 이미지에 핀 |
+| 패키지 | `pyproject.toml` + `uv`(`uv.lock`), devcontainer 이미지에 핀 |
 
 > 각 프로바이더의 구체 모델명(Gemini/Claude/OpenAI)과 LiteLLM 기능 범위는 **녹화 시점 최신 버전으로 확정**한다. LiteLLM은 Ollama 네이티브 function calling을 지원하는 버전 이상으로 핀한다.
 >
@@ -195,14 +195,14 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 **사전 제작 필요 자료**
 
 - Acme 가상 데이터: 사규 PDF 50~100쪽, 위키 HTML 20~30페이지, 계약서 5~10건, 고객 문의 100건
-- 표준 `requirements.txt` (devcontainer 핀 버전)
+- 표준 `pyproject.toml` + `uv.lock` (devcontainer 핀 버전)
 - 다이어그램: 엔지니어링 사다리(프롬프트→컨텍스트→하네스), 에이전트=모델+하네스, RAG 파이프라인
 
 **코드 저장소 구조 (`common-edu-examples`)**
 
 - `s1`~`s5`·`capstone` 폴더별 실습 스크립트
 - `data/` Acme 가상 데이터
-- `.devcontainer/`, `requirements.txt`, `README.md`
+- `.devcontainer/`, `pyproject.toml`·`uv.lock`, `README.md`
 
 **코드 배포·태깅**
 
@@ -221,5 +221,5 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 **제작 시 확정 항목**
 
 - 각 프로바이더 최신 모델명, LiteLLM 기능 범위
-- Ollama 호스트 연결 방식(`OLLAMA_HOST`) 최종 점검
+- Ollama 호스트 연결 방식(`OLLAMA_API_BASE`) 최종 점검
 - Ollama tool calling 지원 모델 선정 + JSON 모드 폴백 동작 검증
