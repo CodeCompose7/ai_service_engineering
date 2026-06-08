@@ -29,9 +29,7 @@ def test_local_model_falls_back_to_default():
 
 
 def test_ollama_kwargs_passes_api_base():
-    assert ollama_kwargs({"OLLAMA_API_BASE": "http://h:11434"}) == {
-        "api_base": "http://h:11434"
-    }
+    assert ollama_kwargs({"OLLAMA_API_BASE": "http://h:11434"}) == {"api_base": "http://h:11434"}
 
 
 def test_targets_includes_both_when_available():

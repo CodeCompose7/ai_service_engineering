@@ -34,9 +34,7 @@ def parse_args() -> argparse.Namespace:
     """질문과 샘플링 옵션을 파싱한다."""
     parser = argparse.ArgumentParser(description="설정한 프로바이더에게 한 번 물어본다.")
     parser.add_argument("question", nargs="*", help="물어볼 질문 (없으면 기본 질문)")
-    parser.add_argument(
-        "-t", "--temperature", type=float, default=None, help="샘플링 온도"
-    )
+    parser.add_argument("-t", "--temperature", type=float, default=None, help="샘플링 온도")
     parser.add_argument("--top-p", dest="top_p", type=float, default=None, help="top_p")
     parser.add_argument(
         "--top-k",

@@ -26,8 +26,7 @@ CLOUD_MODEL = "gemini/gemini-2.5-flash"
 DEFAULT_LOCAL_MODEL = "gemma4:12b"
 REVIEW_TEXT = "배송은 빨랐는데 포장이 너무 허술했어요."
 MULTI_TEXT = (
-    "배송이 정말 빨라서 좋았어요. 다만 고객센터 응대는 불친절했습니다. "
-    "가격은 그냥 무난한 편이에요."
+    "배송이 정말 빨라서 좋았어요. 다만 고객센터 응대는 불친절했습니다. 가격은 그냥 무난한 편이에요."
 )
 
 
