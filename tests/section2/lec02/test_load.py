@@ -9,7 +9,6 @@ import unicodedata
 from section2.lec02.load import (
     SAMPLE_HTML,
     SAMPLE_PDF,
-    SCANNED_PDF,
     extract_text,
     normalize,
     page_texts,
@@ -39,12 +38,6 @@ def test_extract_text_pdf_clean_has_no_internal_newline():
 
 def test_raw_pdf_page_has_internal_newlines():
     assert page_texts(SAMPLE_PDF)[0].count("\n") >= 5  # 원시 추출엔 줄바꿈이 많다
-
-
-def test_scanned_pdf_is_empty():
-    pages = extract_text(SCANNED_PDF)
-    assert len(pages) == 1
-    assert pages[0]["is_empty"] is True  # 이미지 전용, 텍스트 없음
 
 
 def test_extract_text_html_includes_body_and_boilerplate():

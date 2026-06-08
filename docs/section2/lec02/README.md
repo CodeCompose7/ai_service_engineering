@@ -83,7 +83,7 @@ flowchart LR
 
 ## 5. 예제 코드가 하는 일 및 결과
 
-[load.py](../../../src/section2/lec02/load.py)는 실제 문서를 읽습니다. 샘플은 한국어 위키백과 "검색 증강 생성" 글로, [rag.pdf](../../../src/section2/lec02/data/rag.pdf)는 위키백과 PDF 내보내기 10쪽, [rag.html](../../../src/section2/lec02/data/rag.html)은 같은 글의 전체 웹페이지, [scanned.pdf](../../../src/section2/lec02/data/scanned.pdf)는 PDF 1쪽을 이미지로 구운 스캔본 흉내입니다. 셋 다 같은 `extract_text`로 엽니다. 문서는 CC BY-SA이며, 스캔본은 `data/make_scanned.py`로 만듭니다.
+[load.py](../../../src/section2/lec02/load.py)는 실제 문서를 읽습니다. 샘플은 한국어 위키백과 "검색 증강 생성" 글로, [rag.pdf](../../../src/section2/lec02/data/rag.pdf)는 위키백과 PDF 내보내기 10쪽, [rag.html](../../../src/section2/lec02/data/rag.html)은 같은 글의 전체 웹페이지입니다. 둘 다 같은 `extract_text`로 엽니다. 문서는 CC BY-SA입니다.
 
 ```mermaid
 flowchart TB
@@ -99,23 +99,20 @@ uv run python src/section2/lec02/load.py
 ```
 
 ```text
-=== 1. PDF 원시 추출 vs 정제 ===
+=== 1. PDF 추출과 정제 ===
 1쪽 원시: '검색증강생성\n검색 증강 생성(Retrieval-augmented generation, ' ...
   개행 33개 — 줄을 접은 자리마다 끊깁니다
 1쪽 정제: 검색증강생성 검색 증강 생성(Retrieval-augmented generation, RAG)은 대형 언어  ...
+  rag.pdf: 10쪽, 빈 페이지 0쪽 — 스캔본이면 is_empty로 잡아 OCR로
 
-=== 2. 스캔본은 텍스트가 없습니다 ===
-  rag.pdf    : 10쪽, 빈 페이지 0쪽
-  scanned.pdf: 1쪽, 빈 페이지 1쪽  ← 스캔 이미지, OCR 필요
-
-=== 3. HTML은 보일러플레이트까지 ===
+=== 2. HTML은 보일러플레이트까지 ===
   본문으로 이동 주 메뉴 주 메뉴 사이드바로 이동 숨기기 둘러보기 • 대문 • 최근 바뀜 • 요즘 화제 • 임의 문서로 사용자 모임 •
 ```
 
 읽어낼 점입니다.
 
 - 실제 위키백과 PDF도 원시 추출엔 문장 중간 개행이 33개 들어갑니다. 줄을 접은 자리입니다. `normalize`가 이를 공백으로 이어, 검색·청킹에 쓸 연속 텍스트로 만듭니다.
-- 텍스트 PDF는 10쪽 모두 텍스트가 있지만, 그 1쪽을 이미지로 구운 `scanned.pdf`는 0자입니다. 스캔본은 추출로 안 나오니 빈 페이지로 잡아 OCR로 넘깁니다.
+- 10쪽 모두 텍스트가 있어 빈 페이지가 없습니다. 만약 스캔·이미지 PDF였다면 텍스트가 안 나와 `is_empty`로 잡혔을 것이고, 그런 페이지는 OCR로 넘깁니다.
 - HTML은 같은 코드로 열리지만, 본문 앞에 `본문으로 이동 · 주 메뉴 · 둘러보기` 같은 내비게이션이 잔뜩 딸려 옵니다. 웹페이지에서 본문만 원하면 이 보일러플레이트를 따로 걷어내야 합니다. trafilatura 같은 도구를 씁니다.
 
 ## 6. 정리
