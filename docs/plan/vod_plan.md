@@ -55,14 +55,15 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | LLM 접근 | **LiteLLM** 단일 인터페이스로 멀티 프로바이더 |
 | 기본 프로바이더 | Google AI Studio (Gemini) — 무료 티어 권장 기본 |
 | 보조 프로바이더 | OpenAI Platform, Claude Platform |
-| 로컬 모델 (옵션) | Ollama — 호스트 실행 + `OLLAMA_HOST` 연결. **tool calling 지원 모델 사용**(예: Llama 3.x / Qwen2.5 계열). 미지원 모델은 LiteLLM이 JSON 모드 tool call로 폴백 |
+| 로컬 모델 (옵션) | Ollama — 호스트 실행 + `OLLAMA_API_BASE` 연결(컨테이너에선 `host.docker.internal`). 로컬 무료, 또는 Ollama Cloud(`-cloud` 모델, `ollama signin`·`OLLAMA_API_KEY`). function calling은 모델마다 갈려, 약하거나 미지원이면 LiteLLM이 JSON 모드로 폴백 |
+| 문서 로딩 | **PyMuPDF**(fitz) — PDF·HTML을 한 도구로 추출, 한국어 함정(줄바꿈·NFC·스캔) 처리 |
 | 임베딩 | sentence-transformers 직접(HF) — `BAAI/bge-m3` 기본(다국어, CPU 가능), 한국어 경량 대안 `ko-sroberta`. **LiteLLM 미경유 예외** |
 | 벡터DB | Chroma (영속 모드) |
 | 구조화 출력 | Pydantic v2 + instructor |
 | 에이전트 | function calling + LangGraph |
 | 서빙 | FastAPI → 서빙용 Docker → Render / Railway |
 | 예제 도메인 | 가상 회사 "Acme" 사내 데이터 (위키/사규/계약서/문의) |
-| 패키지 | `requirements.txt` / `uv`, devcontainer 이미지에 핀 |
+| 패키지 | `pyproject.toml` + `uv`(`uv.lock`), devcontainer 이미지에 핀 |
 
 > 각 프로바이더의 구체 모델명(Gemini/Claude/OpenAI)과 LiteLLM 기능 범위는 **녹화 시점 최신 버전으로 확정**한다. LiteLLM은 Ollama 네이티브 function calling을 지원하는 버전 이상으로 핀한다.
 >
@@ -89,21 +90,21 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 | 구조화 출력 1 | 22 | Pydantic 스키마, 프롬프트로 JSON 받기의 함정 | Pydantic 모델 |
 | 구조화 출력 2 | 21 | instructor로 검증·재시도 | 안전한 추출 함수 |
 
-### S2 — 데이터 & RAG 코어 (110분 / 7단위)
+### S2 — 데이터 & RAG 코어 (99분 / 7단위)
 
 RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴.
 
 | 단위 | 분 | 핵심 내용 | 산출물 |
 | --- | --- | --- | --- |
-| 데이터 수집·정제 | 16 | CSV/웹/API 수집 + pandas 경량 정제 | 정제 스크립트 |
-| 문서 로딩 | 15 | PDF/HTML 추천 도구 1개 + 한국어 PDF 함정 | 텍스트 추출기 |
+| 데이터 수집·정제 | 10 | CSV/웹/API 수집 + pandas 경량 정제 | 정제 스크립트 |
+| 문서 로딩 | 10 | PyMuPDF로 PDF·HTML 로딩 + 한국어 함정 | 텍스트 추출기 |
 | 청킹 | 18 | RecursiveCharacterTextSplitter, overlap, 의미 단위 | 청킹 유틸 |
 | 임베딩 | 15 | sentence-transformers(HF) `bge-m3`, 유사도 직관 | 임베딩 함수 |
 | 벡터DB Chroma | 13 | add/query, 메타데이터 필터 | Chroma 컬렉션 |
 | mini RAG | 18 | retrieval → generation → 출처 표시 (Acme 사규) | 동작 mini RAG |
 | 검색 평가 | 15 | Recall@k/MRR, 청킹·임베딩 조합 비교 | 평가 노트북 |
 
-### S3 — Agent 구성: 빌드 (102분 / 6단위)
+### S3 — Agent 구성: 빌드 (113분 / 6단위)
 
 도구를 쓰는 에이전트를 "동작하게" 만드는 빌드 레이어. 모든 호출은 LiteLLM 경유이며, Ollama 로컬 실행 시 tool calling 지원 모델을 쓰고 미지원 모델은 JSON 모드로 폴백한다.
 
@@ -111,10 +112,10 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 | --- | --- | --- | --- |
 | function calling 원리 | 20 | tool schema, 모델이 호출 결정하는 loop | 단일 tool 호출 |
 | 단일 도구 에이전트 | 15 | 한 도구로 end-to-end | 동작 에이전트 |
-| multi-tool agent | 18 | 도구 여러 개 라우팅 | 멀티툴 에이전트 |
+| multi-tool agent | 22 | 도구 여러 개 라우팅 | 멀티툴 에이전트 |
 | LangGraph 기초 | 18 | 상태·노드·엣지 개념 | 최소 그래프 |
-| LangGraph 실전 | 20 | 분기/루프 있는 흐름 (Acme 자동화 예) | 자동화 그래프 |
-| provider-agnostic 에이전트 | 11 | LiteLLM로 백엔드 교체, Ollama tool calling + JSON 모드 폴백 | 클라우드·Ollama 양쪽 동작 |
+| LangGraph 실전 | 23 | 분기/루프 있는 흐름 (Acme 자동화 예) | 자동화 그래프 |
+| provider-agnostic 에이전트 | 15 | LiteLLM로 백엔드 교체, Ollama tool calling + JSON 모드 폴백 | 클라우드·Ollama 양쪽 동작 |
 
 ### S4 — 컨텍스트 & 하네스 엔지니어링: 신뢰성 (86분 / 5단위)
 
@@ -156,8 +157,8 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 | 섹션 | 분 | 단위 |
 | --- | --- | --- |
 | S1 LLM을 서비스로 | 120 | 9 |
-| S2 데이터 & RAG 코어 | 110 | 7 |
-| S3 Agent 빌드 | 102 | 6 |
+| S2 데이터 & RAG 코어 | 99 | 7 |
+| S3 Agent 빌드 | 113 | 6 |
 | S4 컨텍스트 & 하네스 (신뢰성) | 86 | 5 |
 | S5 서빙 & 배포 | 40 | 2 |
 | 캡스톤 | 22 | 1 |
@@ -194,14 +195,14 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 **사전 제작 필요 자료**
 
 - Acme 가상 데이터: 사규 PDF 50~100쪽, 위키 HTML 20~30페이지, 계약서 5~10건, 고객 문의 100건
-- 표준 `requirements.txt` (devcontainer 핀 버전)
+- 표준 `pyproject.toml` + `uv.lock` (devcontainer 핀 버전)
 - 다이어그램: 엔지니어링 사다리(프롬프트→컨텍스트→하네스), 에이전트=모델+하네스, RAG 파이프라인
 
 **코드 저장소 구조 (`common-edu-examples`)**
 
 - `s1`~`s5`·`capstone` 폴더별 실습 스크립트
 - `data/` Acme 가상 데이터
-- `.devcontainer/`, `requirements.txt`, `README.md`
+- `.devcontainer/`, `pyproject.toml`·`uv.lock`, `README.md`
 
 **코드 배포·태깅**
 
@@ -220,5 +221,5 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 **제작 시 확정 항목**
 
 - 각 프로바이더 최신 모델명, LiteLLM 기능 범위
-- Ollama 호스트 연결 방식(`OLLAMA_HOST`) 최종 점검
+- Ollama 호스트 연결 방식(`OLLAMA_API_BASE`) 최종 점검
 - Ollama tool calling 지원 모델 선정 + JSON 모드 폴백 동작 검증
