@@ -112,6 +112,26 @@ flowchart TD
 
 [json_traps.py](../../../src/section1/lec08/json_traps.py)로 이 두 층을 재현합니다. 원시 파싱 → 가드 후 파싱 → Pydantic 검증을 거치며 어디서 깨지는지 봅니다.
 
+[json_traps.py](../../../src/section1/lec08/json_traps.py)의 전체 구조입니다. `main()`이 세 데모를 차례로 부르고, 각 데모는 핵심 함수로 호출·파싱·검증을 거쳐 우리가 정의한 Pydantic 모델로 모입니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 백엔드 고르고 데모 실행"]
+  MAIN --> D1["demo_traps<br/>원시 파싱·가드·검증"]
+  MAIN --> D2["demo_json_mode<br/>JSON 모드 비교"]
+  MAIN --> D3["demo_retry<br/>오류 되먹여 재시도"]
+  D1 --> ASK["ask — litellm 한 번 호출"]
+  D2 --> ASK
+  D3 --> RETRY["request_with_retry — 재시도 루프"]
+  D1 --> GUARD["parse_with_guard / extract_json<br/>코드펜스 벗겨 파싱"]
+  D1 --> VAL["validate — Review로 검증"]
+  RETRY --> GUARD
+  RETRY --> VAL
+  ASK --> MODEL["Review / NormalizedReview<br/>Pydantic 출력 계약"]
+  VAL --> MODEL
+  classDef default rx:8,ry:8;
+```
+
 ````text
 === 1. 프롬프트만으로 JSON 받기 — 두 층의 함정 ===
 리뷰: 배송은 빨랐는데 포장이 너무 허술했어요.

@@ -120,6 +120,21 @@ flowchart TD
 
 [local_call.py](../../../src/section1/lec07/local_call.py)는 같은 프롬프트를 클라우드와 로컬에 보내 본문과 응답 시간을 나란히 보여줍니다. 호출 코드는 하나뿐이고, 라벨만 클라우드·로컬로 갈립니다.
 
+[local_call.py](../../../src/section1/lec07/local_call.py)의 구조입니다. `main`이 두 데모를 `compare`로 돌리고, `compare`는 `targets`가 모은 백엔드마다 `timed_call`로 호출합니다. 백엔드 설정은 작은 헬퍼들로 나뉘어 있습니다.
+
+```mermaid
+flowchart TB
+  MAIN["main()<br/>데모 1·2 실행"] --> CMP["compare<br/>백엔드별 비교 출력"]
+  CMP --> TC["timed_call<br/>LiteLLM 호출 · 시간 측정"]
+  CMP --> TG["targets<br/>준비된 백엔드 목록"]
+  TG --> CFG["백엔드 설정<br/>have_cloud · have_local<br/>local_model · ollama_kwargs"]
+  classDef default rx:8,ry:8;
+  classDef key fill:#eaf2ff,stroke:#4a78c0;
+  class TC key;
+```
+
+호출 흐름만 따로 보면 다음과 같습니다.
+
 ```mermaid
 flowchart TB
   ENV[".env 읽기<br/>클라우드·로컬 탐지"] --> T["targets<br/>준비된 백엔드"]
