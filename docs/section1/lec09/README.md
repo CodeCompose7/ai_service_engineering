@@ -220,7 +220,7 @@ flowchart TD
 - 비-OpenAI 백엔드(ollama 등)는 모델마다 tool calling 지원이 달라, JSON 모드가 안전합니다. lec07에서 본 tool calling의 백엔드 편차가 여기서도 나타납니다.
 - 여러 개나 중첩처럼 복잡한 스키마는 tool calling이 객체 하나를 전제로 해 흔들리므로, JSON 모드로 받습니다. 5절의 추출을 양쪽 다 JSON 모드로 돌린 이유입니다.
 
-모드는 `instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)`처럼 한 줄로 바꿉니다. 작은 로컬 모델이 `" 중립"`처럼 사소하게 흔들릴 때는 lec08의 정규화 모델을 함께 써 재시도 없이 흡수합니다. 3절의 ollama 결과가 `NormalizedReview`였던 것이 그 때문입니다.
+모드는 `instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)`처럼 한 줄로 바꿉니다. 작은 로컬 모델이 `" 중립"`(앞에 공백)처럼 사소하게 흔들릴 때는 lec08의 정규화 모델을 함께 써 재시도 없이 흡수합니다. 3절의 ollama 결과가 `NormalizedReview`였던 것이 그 때문입니다.
 
 ## 8. Ollama 로컬과 클라우드
 
