@@ -156,9 +156,23 @@ Ollama는 기본이 로컬이지만, 모델 이름 끝에 `-cloud`를 붙이면 
 - 클라우드 모델(`-cloud`)을 쓰려면 둘 중 하나가 필요합니다. 호스트에서 한 번 로그인해 두면 코드는 로컬 모델과 똑같이 `OLLAMA_API_BASE`만으로 동작합니다.
 - 키로 직접 쓰려면 ollama.com 설정의 API keys에서 Add API Key로 발급해 `.env`의 `OLLAMA_API_KEY`에 넣습니다. 예제의 `targets`는 이 키가 있으면 호출에 함께 넘깁니다.
 
+![ollama.com Keys에서 Add API Key](img/Ollama_API_key_01.png)
+*ollama.com 설정의 Keys 메뉴를 열고 Add API Key를 누릅니다.*
+
+![키 이름을 짓고 Generate API Key](img/Ollama_API_key_02.png)
+*키 이름을 정하고 Generate API Key를 누르면 키가 발급됩니다. 발급된 키는 그때 한 번만 보이니, 바로 복사해 `.env`의 `OLLAMA_API_KEY`에 넣습니다.*
+
 `.env.sample`에 `OLLAMA_API_KEY` 항목을 두었습니다. 로컬 모델에는 비워 두고, 클라우드 모델을 쓸 때만 채웁니다.
 
-## 8. S1을 마치며
+## 8. 정리
+
+- instructor는 Pydantic 모델을 출력 스키마로 받아 파싱·검증·재시도를 대신 처리합니다.
+- 결과로 검증된 Pydantic 객체를 바로 돌려받는 안전한 추출 함수를 얻습니다.
+- `response_model`에 `list[Review]`를 주면 한 호출로 여러 객체를 목록으로 받습니다.
+- 백엔드에 맞춰 모드만 손봅니다. 비-OpenAI 백엔드와 목록 추출은 JSON 모드(lec07)가, 작은 로컬 모델은 정규화 모델(lec08)이 안정적입니다.
+- Ollama는 기본이 로컬이고, `-cloud` 모델로 클라우드도 씁니다. 클라우드는 `ollama signin`이나 `OLLAMA_API_KEY`로 인증합니다.
+
+## 9. S1을 마치며
 
 이로써 S1의 한 바퀴가 끝납니다. 지금까지 거쳐 온 길은 다음과 같습니다.
 
@@ -168,15 +182,3 @@ Ollama는 기본이 로컬이지만, 모델 이름 끝에 `-cloud`를 붙이면 
 - 마지막으로 자연어 응답을 검증된 데이터로 바꾸는 데까지 왔습니다.
 
 이 추출 함수는 다음 섹션부터 데이터와 에이전트를 다룰 때 반복해 쓰는 기본 부품이 됩니다.
-
-## 9. 정리
-
-- instructor는 Pydantic 모델을 출력 스키마로 받아 파싱·검증·재시도를 대신 처리합니다.
-- 결과로 검증된 Pydantic 객체를 바로 돌려받는 안전한 추출 함수를 얻습니다.
-- `response_model`에 `list[Review]`를 주면 한 호출로 여러 객체를 목록으로 받습니다.
-- 백엔드에 맞춰 모드만 손봅니다. 비-OpenAI 백엔드와 목록 추출은 JSON 모드(lec07)가, 작은 로컬 모델은 정규화 모델(lec08)이 안정적입니다.
-- Ollama는 기본이 로컬이고, `-cloud` 모델로 클라우드도 씁니다. 클라우드는 `ollama signin`이나 `OLLAMA_API_KEY`로 인증합니다.
-
-## 10. 다음 섹션
-
-[S2 — 데이터 & RAG 코어](../../plan/vod_plan.md)로 이어집니다. 여기서 만든 호출·추출 부품 위에 데이터 처리와 검색을 쌓습니다.
