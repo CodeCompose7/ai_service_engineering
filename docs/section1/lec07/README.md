@@ -93,7 +93,10 @@ print(resp.choices[0].message.content)
 
 ## 5. function calling은 로컬에서 약해집니다
 
-뒤 섹션에서 다룰 function calling은 로컬 모델에서 자주 약점을 드러냅니다. 모델의 tool calling 지원 여부에 따라 동작이 갈립니다.
+뒤 섹션에서 다룰 function calling은 로컬 모델에서 자주 약점을 드러냅니다. 모델의 tool calling 지원 여부에 따라 동작이 갈립니다. 이 지원 여부는 모델마다 다르고, Ollama 모델 목록에서 기능 태그로 확인할 수 있습니다.
+
+![Ollama 모델 목록의 기능 태그](img/Ollama_model_list.png)
+*Ollama 모델 목록은 각 모델이 지원하는 기능을 태그로 보여줍니다. `tools` 태그가 tool calling 지원을 뜻하고, 상단 "Tools" 탭으로 지원 모델만 추려볼 수 있습니다. 로컬에서 도구 호출을 쓰려면 이 태그를 보고 모델을 고릅니다.*
 
 ```mermaid
 flowchart TD
