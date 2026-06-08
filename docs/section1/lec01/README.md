@@ -68,7 +68,7 @@ flowchart TB
   class DEV work;
 ```
 
-이 컨테이너의 설계도가 [.devcontainer/Dockerfile](../../../.devcontainer/Dockerfile)입니다. 도구는 깔되 코드는 굽지 않는 것이 특징입니다.
+이 컨테이너의 설계도가 [.devcontainer/Dockerfile](../../../.devcontainer/Dockerfile)입니다. 개발에 필요한 도구는 설치하지만, 코드는 이미지에 넣지 않는 것이 특징입니다.
 
 ```dockerfile
 # .devcontainer/Dockerfile — 개발용
