@@ -1,7 +1,7 @@
 # lec07 — Ollama 로컬
 
 > - S1 개요: [docs/section1/README.md](../README.md)
-> - 분량 12분
+> - 분량 5분
 > - 산출물: 로컬 호출 예제
 
 ## 1. 목표
