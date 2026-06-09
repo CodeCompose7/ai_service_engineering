@@ -1,7 +1,7 @@
 # lec02 — 문서 로딩
 
 > - S2 개요: [docs/section2/README.md](../README.md)
-> - 분량 10분
+> - 분량 6분
 > - 산출물: 텍스트 추출기
 
 ## 1. 목표

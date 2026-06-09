@@ -1,7 +1,7 @@
 # lec03 — 청킹
 
 > - S2 개요: [docs/section2/README.md](../README.md)
-> - 분량 18분
+> - 분량 7분
 > - 산출물: 청킹 유틸
 
 ## 1. 목표

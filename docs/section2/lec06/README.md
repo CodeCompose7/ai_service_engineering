@@ -1,7 +1,7 @@
 # lec06 — mini RAG
 
 > - S2 개요: [docs/section2/README.md](../README.md)
-> - 분량 18분
+> - 분량 10분
 > - 산출물: 동작 mini RAG
 
 ## 1. 목표
