@@ -6,4 +6,117 @@
 
 ## 1. 목표
 
-Chroma 컬렉션에 임베딩을 add하고 query로 검색하며, 메타데이터로 결과를 필터링합니다.
+lec02~04가 여기서 한 파이프라인으로 모입니다. rag.pdf를 로딩·청킹하고, 청크를 임베딩해 Chroma에 넣고, 질문으로 검색합니다.
+
+```mermaid
+flowchart LR
+  L2["lec02<br/>로딩"] --> L3["lec03<br/>청킹"] --> L4["lec04<br/>임베딩"] --> L5["lec05<br/>벡터DB"]
+  L5 --> Q["질문 검색"]
+  classDef default rx:8,ry:8;
+  classDef now fill:#eaf2ff,stroke:#4a78c0;
+  class L5 now;
+```
+
+## 2. 왜 벡터DB인가
+
+벡터DB가 해주는 일은 둘입니다.
+
+- 미리 계산한 임베딩을 저장합니다. 질문마다 문서를 다시 임베딩하지 않습니다. 무거운 인덱싱은 한 번만 합니다.
+- 수많은 벡터 중 가까운 것을 빠르게 찾습니다. 전부와 일일이 비교하지 않고 근사 최근접 이웃(ANN) 인덱스로 순식간에 고릅니다.
+
+질문이 올 때 임베딩하는 것은 질문 하나뿐이고, 무거운 일은 인덱싱 때 끝나 있습니다.
+
+## 3. 일반 DB와의 차이
+
+일반 DB는 조건에 정확히 맞는 행을 찾습니다. 벡터DB는 뜻이 가까운 항목을 찾습니다. 이것이 가장 큰 차이입니다.
+
+| | 일반 DB (관계형 등) | 벡터 DB |
+| --- | --- | --- |
+| 저장 | 행·열, 키-값 | 벡터 + 문서 + 메타데이터 |
+| 질의 | 정확히 일치·범위 (`WHERE x = 5`) | 가장 가까운 벡터 (의미 유사) |
+| 찾는 것 | 조건에 맞는 행 | 뜻이 비슷한 항목 |
+| 핵심 연산 | 인덱스로 정확 조회 | ANN으로 최근접 이웃 |
+
+```mermaid
+flowchart LR
+  Q["질문"] --> RDB["일반 DB<br/>정확히 일치하는 행"]
+  Q --> VDB["벡터 DB<br/>뜻이 가까운 항목"]
+  classDef default rx:8,ry:8;
+```
+
+일반 DB에서 `환불`을 찾으면 그 단어가 든 행만 나옵니다. 벡터DB는 `반품`처럼 단어가 달라도 뜻이 가까우면 찾습니다. lec04의 의미 검색이 이것입니다. 그러면서도 벡터DB는 메타데이터 필터(일반 DB의 `WHERE`와 비슷)를 함께 지원해, "이 문서 안에서 의미가 가까운 것"처럼 둘을 섞어 씁니다.
+
+## 4. add와 query
+
+Chroma 컬렉션에 청크·임베딩·메타데이터를 add로 넣고, 질문 벡터로 가까운 것을 query로 찾습니다. 거리 기준은 코사인으로 두어 lec04의 유사도와 결을 맞춥니다.
+
+```python
+import chromadb
+from section2.lec04.embedder import embed
+
+col = chromadb.PersistentClient(path=".chroma").get_or_create_collection(
+    "acme_docs", metadata={"hnsw:space": "cosine"}
+)
+
+# add — 청크를 임베딩해 저장 (lec04 embed로, LiteLLM 미경유)
+col.add(ids=ids, documents=chunks, embeddings=embed(chunks), metadatas=metas)
+
+# query — 질문 벡터에 가까운 k개
+res = col.query(query_embeddings=[embed(question)], n_results=3)
+```
+
+임베딩은 컬렉션에 직접 만들어 넘깁니다. 그래야 우리 원칙대로 `bge-m3`를 로컬에서 직접 돌리는 임베딩을 그대로 씁니다.
+
+## 5. 메타데이터 필터와 영속성
+
+- 메타데이터 필터: `where`로 검색 범위를 좁힙니다. `where={"source": "rag.pdf"}`면 그 문서 안에서만 찾습니다. 부서·문서별로 검색을 가르는 데 씁니다.
+- 영속성: `PersistentClient(path=...)`로 만들면 컬렉션이 디스크에 남아, 프로그램을 다시 켜도 인덱싱한 내용이 그대로입니다. 매번 다시 임베딩할 필요가 없습니다.
+
+## 6. 예제 코드가 하는 일 및 결과
+
+[store.py](../../../src/section2/lec05/store.py)는 rag.pdf 청크와 공지 몇 건을 인덱싱하고, 질문으로 검색하며, 필터와 영속성을 보여줍니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 시연"]
+  MAIN --> BI["build_index<br/>청크 → embed → add"]
+  MAIN --> SR["search<br/>질문 벡터 → query (산출물)"]
+  BI --> MC["make_collection<br/>Chroma · 코사인"]
+  SR --> MC
+  classDef default rx:8,ry:8;
+```
+
+```bash
+uv run python src/section2/lec05/store.py
+```
+
+```text
+입력: rag.pdf 39 청크 + 공지 2건
+컬렉션에 41개 저장
+
+=== 검색 — 검색 증강 생성은 어떻게 동작하나요? ===
+  0.731 [rag.pdf] 검색증강생성 검색 증강 생성(Retrieval-augmented ...
+  0.666 [rag.pdf] 있다.[1][12] 모델은 검색된 관련 정보를 사용자의 원래 쿼리...
+  0.636 [rag.pdf] 더 많은 정보 를 기반으로 하고 문맥적으로 근거 있는 응답을 생성...
+
+=== 메타데이터 필터 — source=notice 안에서만 ===
+  0.327 [notice] 사내 식당은 정오에 엽니다.
+  0.288 [notice] 주차장은 지하 2층입니다.
+
+=== 영속성 — 디스크에 저장하면 재시작해도 유지 ===
+  새 클라이언트로 다시 열어도 1개 유지
+```
+
+읽어낼 점입니다.
+
+- rag.pdf가 39개 청크로 인덱싱됩니다. 로딩·청킹·임베딩·저장이 한 번에 이어집니다.
+- 질문에 가장 가까운 것은 RAG의 정의·동작을 설명하는 rag.pdf 청크이고 유사도가 0.731입니다. 단어가 정확히 같아서가 아니라 뜻이 가까워서 뽑힙니다.
+- `source=notice` 필터를 걸면 관련 없는 공지 두 건만 나옵니다. 필터가 검색 범위를 그 출처로 제한합니다.
+- 디스크에 저장하면 다시 열어도 개수가 유지됩니다. 한 번 인덱싱하면 끝입니다.
+
+## 7. 정리
+
+- 벡터DB는 미리 계산한 임베딩을 저장하고, ANN으로 가까운 벡터를 빠르게 찾습니다.
+- 일반 DB가 정확히 일치하는 행을 찾는다면, 벡터DB는 뜻이 가까운 항목을 찾습니다. 메타데이터 필터로 둘을 섞습니다.
+- add로 청크·임베딩·메타데이터를 넣고, query로 질문에 가까운 청크를 꺼냅니다.
+- 영속 모드면 인덱싱이 디스크에 남아 재사용됩니다. 이 컬렉션이 다음 단위 mini RAG의 검색 부품이 됩니다.
