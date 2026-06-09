@@ -32,7 +32,7 @@ build-backend = "hatchling.build"
 # src 레이아웃의 섹션 패키지를 설치형으로 노출한다. 그래야 `uv run python src/...`로
 # 예제를 실행할 때도 단원 간 import(예: lec03이 lec02를 가져오기)가 동작한다.
 [tool.hatch.build.targets.wheel]
-packages = ["src/section1", "src/section2"]
+packages = ["src/section1", "src/section2", "src/section3"]
 
 [dependency-groups]
 dev = [
