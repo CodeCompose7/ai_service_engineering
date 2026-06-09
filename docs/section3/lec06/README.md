@@ -1,9 +1,9 @@
-# lec06 — provider-agnostic 에이전트
+# lec06 — LangGraph 실전
 
 > - S3 개요: [docs/section3/README.md](../README.md)
-> - 분량 19분
-> - 산출물: 클라우드·Ollama 양쪽 동작
+> - 분량 24분
+> - 산출물: 자동화 그래프
 
 ## 1. 목표
 
-LiteLLM으로 백엔드를 바꿔 끼우고, Ollama tool calling과 JSON 모드 폴백으로 클라우드와 로컬 어느 쪽에서도 도는 에이전트를 만듭니다.
+분기와 루프가 있는 흐름을 LangGraph로 짭니다. 조건에 따라 도구를 반복 호출하거나 갈래를 나누는 자동화 그래프를 만듭니다.
