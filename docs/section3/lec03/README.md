@@ -46,7 +46,7 @@ flowchart TD
 
 ### 3.1. 리턴 — dict 대신 dataclass
 
-도구는 결과를 dict가 아니라 dataclass로 돌려줍니다. `geocode`는 `Location`을, `get_weather`는 `Weather`를 돌려주는 식입니다. 타입으로 출력의 계약이 또렷해지고, 없는 도시나 사용자는 `ToolError`로 올려 성공 리턴 타입을 깨끗하게 둡니다.
+도구는 결과를 dict가 아니라 dataclass로 돌려줍니다. `geocode`는 `Location`을, `get_weather`는 `Weather`를 돌려주는 식입니다. 타입으로 출력의 형식이 또렷해지고, 없는 도시나 사용자는 `ToolError`로 올려 성공 리턴 타입을 깨끗하게 둡니다.
 
 ```python
 # 도구는 dict 대신 dataclass를 돌려준다
@@ -74,7 +74,7 @@ async def _call(name, args) -> str:
     return json.dumps(payload, ensure_ascii=False)
 ```
 
-section1에서 Pydantic으로 LLM이 뱉은 JSON, 곧 못 믿을 입력을 검증했다면, 여기 dataclass는 반대로 우리가 만들어 모델에 보내는 출력의 계약입니다.
+section1에서 Pydantic으로 LLM이 뱉은 JSON, 곧 못 믿을 입력을 검증했다면, 여기 dataclass는 검증하는 계약이 아닙니다. `dataclass`는 런타임에 타입을 강제하지 않으니, 우리가 출력을 일정한 모양으로 맞춰 따르는 데이터 구조에 가깝습니다. 우리가 만든 값이라 검증할 일이 없고, 모양을 또렷이 해 둘 뿐입니다.
 
 ## 4. 연계 — 앞 도구의 결과가 다음 입력
 
