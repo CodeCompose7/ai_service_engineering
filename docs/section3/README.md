@@ -29,21 +29,22 @@ flowchart LR
 | 단위 | 분 | 주제 | 산출물 |
 | --- | --- | --- | --- |
 | [lec01](lec01/README.md) | 24 | function calling 원리 | 단일 tool 호출 |
-| [lec02](lec02/README.md) | 18 | 단일 도구 에이전트 | 동작 에이전트 |
-| [lec03](lec03/README.md) | 27 | multi-tool agent | 멀티툴 에이전트 |
-| [lec04](lec04/README.md) | 22 | LangGraph 기초 | 최소 그래프 |
-| [lec05](lec05/README.md) | 28 | LangGraph 실전 | 자동화 그래프 |
-| [lec06](lec06/README.md) | 19 | provider-agnostic 에이전트 | 클라우드·Ollama 양쪽 동작 |
+| [lec02](lec02/README.md) | 16 | 단일 도구 에이전트 | 동작 에이전트 |
+| [lec03](lec03/README.md) | 22 | multi-tool agent | 멀티툴 에이전트 |
+| [lec04](lec04/README.md) | 20 | MCP로 도구 연결 | MCP 연결 에이전트 |
+| [lec05](lec05/README.md) | 18 | LangGraph 기초 | 최소 그래프 |
+| [lec06](lec06/README.md) | 24 | LangGraph 실전 | 자동화 그래프 |
+| [lec07](lec07/README.md) | 14 | provider-agnostic 에이전트 | 클라우드·Ollama 양쪽 동작 |
 
-합계 138분, 6단위입니다.
+합계 138분, 7단위입니다.
 
 ## 흐름
 
-도구를 부르는 한 번의 호출에서 시작해 점점 넓힙니다. function calling 원리를 익히고, 한 도구로 end-to-end 에이전트를 만들고, 여러 도구를 라우팅합니다. 그다음 LangGraph로 상태·분기·루프가 있는 흐름을 짜고, 마지막으로 백엔드를 바꿔 끼웁니다.
+도구를 부르는 한 번의 호출에서 시작해 점점 넓힙니다. function calling 원리를 익히고, 한 도구로 end-to-end 에이전트를 만들고, 여러 도구를 라우팅합니다. 그다음 도구를 직접 짜는 대신 MCP 서버에 표준으로 연결하고, LangGraph로 상태·분기·루프가 있는 흐름을 짜며, 마지막으로 백엔드를 바꿔 끼웁니다.
 
 ```mermaid
 flowchart LR
-  L1["lec01<br/>function calling"] --> L2["lec02<br/>단일 도구"] --> L3["lec03<br/>멀티툴"] --> L4["lec04<br/>LangGraph 기초"] --> L5["lec05<br/>LangGraph 실전"] --> L6["lec06<br/>provider-agnostic"]
+  L1["lec01<br/>function calling"] --> L2["lec02<br/>단일 도구"] --> L3["lec03<br/>멀티툴"] --> L4["lec04<br/>MCP 연결"] --> L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>provider-agnostic"]
   classDef default rx:8,ry:8;
 ```
 

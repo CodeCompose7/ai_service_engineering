@@ -1,1 +1,1 @@
-"""lec05 — LangGraph 실전."""
+"""lec05 — LangGraph 기초."""

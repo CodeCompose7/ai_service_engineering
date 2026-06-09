@@ -1,1 +1,1 @@
-"""lec06 — provider-agnostic 에이전트."""
+"""lec06 — LangGraph 실전."""
