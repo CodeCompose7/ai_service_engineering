@@ -1,7 +1,7 @@
 # lec03 — multi-tool agent
 
 > - S3 개요: [docs/section3/README.md](../README.md)
-> - 분량 22분
+> - 분량 20분
 > - 산출물: 멀티툴 에이전트
 
 ## 1. 목표
