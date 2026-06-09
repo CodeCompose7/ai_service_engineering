@@ -37,12 +37,13 @@ def open_index():
 
 
 def run_one(collection, text, k, source) -> None:
-    """질문 한 건을 벡터화해 검색하고 결과를 출력한다."""
+    """질문 한 건을 벡터화해 검색하고, 찾은 청크를 그대로 출력한다."""
     where = {"source": source} if source else None
     hits = search(collection, embed(text), k=k, where=where)
     print(f"\n질문: {text}")
-    for hit in hits:
-        print(f"  {hit['similarity']:.3f} [{hit['metadata']['source']}] {hit['text'][:70]}")
+    for i, hit in enumerate(hits, 1):
+        print(f"\n[{i}] {hit['similarity']:.3f} · {hit['metadata']['source']}")
+        print(hit["text"])
 
 
 def main() -> int:
