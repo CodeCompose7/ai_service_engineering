@@ -1,8 +1,9 @@
-"""위키백과 검색 도구 — 검색어로 위키백과를 찾아 출처와 함께 요약한다.
+"""위키백과 검색 도구 — 영문 위키백과에서 찾아 한국어로 번역·요약한다.
 
-모델이 search_wikipedia(query=...)로 부르면(어떤 단어로 검색할지는 모델이 function calling으로
-정한다), 이 도구가 위키백과를 검색해 문서 요약을 가져오고, 그 내용을 LiteLLM으로 두세 문장으로
-정리해 출처와 함께 돌려준다. 도구가 안에서 다시 LLM을 부르는, 한 단계 똑똑한 도구다.
+모델이 search_wikipedia(query=...)로 부르면(어떤 영어 단어로 검색할지는 모델이 function
+calling으로 정한다), 이 도구가 영문 위키백과를 검색해 문서 요약을 가져오고, 그 영어 내용을
+LiteLLM으로 한국어로 번역·요약해 출처와 함께 돌려준다. 검색은 영어 문서가 더 풍부하고, 번역은
+모델이 잘하므로 영문에서 찾아 한국어로 옮긴다. 도구가 안에서 다시 LLM을 부르는 똑똑한 도구다.
 """
 
 import urllib.parse
@@ -11,10 +12,11 @@ import httpx
 
 from section3.lec01.llm import complete
 
-WIKI = "https://ko.wikipedia.org"
+WIKI = "https://en.wikipedia.org"
 HEADERS = {"User-Agent": "ai-service-engineering-edu/0.1 (course example)"}
 SUMMARY_SYSTEM = (
-    "주어진 위키백과 내용을 두세 문장으로 한국어로 요약한다. 주어진 내용 밖의 말은 보태지 않는다."
+    "주어진 영어 위키백과 내용을 한국어로 두세 문장으로 번역·요약한다. "
+    "주어진 내용 밖의 말은 보태지 않는다."
 )
 
 
@@ -62,8 +64,8 @@ SCHEMA = {
     "function": {
         "name": "search_wikipedia",
         "description": (
-            "위키백과에서 주제를 검색해 요약과 출처를 돌려준다. "
-            "일반 지식이나 사실을 확인할 때 쓴다."
+            "영문 위키백과에서 주제를 검색해 한국어 요약과 출처를 돌려준다. "
+            "query는 영어 검색어로 준다. 일반 지식이나 사실을 확인할 때 쓴다."
         ),
         "parameters": {
             "type": "object",
