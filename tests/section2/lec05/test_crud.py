@@ -3,7 +3,7 @@
 가짜 임베딩으로 Chroma 동작만 검증한다. 실제 임베딩(bge-m3)은 무거워 예제 실행으로 본다.
 """
 
-from section2.lec05.store import delete, get, index, make_collection, search, upsert
+from section2.lec05.crud import delete, get, index, make_collection, search, upsert
 
 
 def _seed(col):

@@ -14,7 +14,7 @@ from pathlib import Path
 
 from section2.lec03.chunker import chunk_text, load_document_text
 from section2.lec04.embedder import embed
-from section2.lec05.store import build_index, make_collection, search
+from section2.lec05.crud import build_index, make_collection, search
 
 PERSIST_DIR = Path(__file__).parent / "data" / "chroma_db"  # .gitignore됨
 

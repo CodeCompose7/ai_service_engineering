@@ -89,15 +89,18 @@ res = col.query(query_embeddings=[embed(question)], n_results=3)
 
 ## 7. 예제 코드가 하는 일 및 결과
 
-[store.py](../../../src/section2/lec05/store.py)는 rag.pdf 청크와 공지 몇 건을 인덱싱하고, 질문으로 검색하며, 필터와 영속성을 보여줍니다.
+코드는 세 파일로 나뉩니다. `crud.py`가 벡터DB 연산(산출물)이고, `store.py`가 그 연산으로 rag.pdf를 인덱싱·시연하며, `query.py`가 터미널 조회 도구입니다.
+
+### 7.1. store.py — rag.pdf 인덱싱·시연
+
+[store.py](../../../src/section2/lec05/store.py)는 rag.pdf 청크와 공지 몇 건을 인덱싱하고, 검색·필터·CRUD·영속을 차례로 보여줍니다.
 
 ```mermaid
 flowchart TB
-  MAIN["main() — 시연"]
-  MAIN --> BI["build_index<br/>청크 → embed → add"]
-  MAIN --> SR["search<br/>질문 벡터 → query (산출물)"]
-  BI --> MC["make_collection<br/>Chroma · 코사인"]
-  SR --> MC
+  MAIN["store.py main()"]
+  MAIN --> PIPE["로딩·청킹·임베딩<br/>lec02 · lec03 · lec04"]
+  MAIN --> OPS["crud 연산<br/>build_index · search<br/>upsert · delete · get"]
+  OPS --> COL["Chroma 컬렉션"]
   classDef default rx:8,ry:8;
 ```
 
@@ -134,7 +137,21 @@ uv run python src/section2/lec05/store.py
 - 공지 하나를 `upsert`로 지하 3층으로 갱신하고 `delete`로 지우니, 41개가 40개로 줍니다. 바뀐 청크만 손보면 됩니다.
 - 디스크에 저장하면 다시 열어도 개수가 유지됩니다. 한 번 인덱싱하면 끝입니다.
 
-### 7.1. 터미널에서 조회하기 (Read CLI)
+### 7.2. crud.py — CRUD 연산 (산출물)
+
+[crud.py](../../../src/section2/lec05/crud.py)가 이 단위의 산출물입니다. Chroma 컬렉션에 대한 만들기·읽기·고치기·지우기를 함수로 모아 둡니다. 5절의 연산 표가 그대로 함수가 됩니다. store.py와 query.py가 이 연산들을 가져다 씁니다.
+
+```mermaid
+flowchart LR
+  COL["Chroma 컬렉션"]
+  COL --- C["Create<br/>index · build_index"]
+  COL --- R["Read<br/>search · get"]
+  COL --- U["Update<br/>upsert"]
+  COL --- D["Delete<br/>delete"]
+  classDef default rx:8,ry:8;
+```
+
+### 7.3. query.py — 터미널 Read CLI
 
 검색은 한 번 인덱싱해 두고 여러 번 묻는 일이라, 별도의 터미널 도구로 두면 편합니다. [query.py](../../../src/section2/lec05/query.py)는 영속 컬렉션을 열어 질문으로 검색합니다. 비어 있으면 rag.pdf를 한 번 인덱싱하고, 그 뒤로는 디스크의 인덱스를 그대로 씁니다.
 
