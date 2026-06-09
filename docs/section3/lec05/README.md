@@ -110,6 +110,17 @@ async for update in APP.astream(initial, stream_mode="updates"):
 
 `stream_mode="updates"`는 각 노드가 돌려준 상태 변화를 내줍니다. model이 도구를 요청하고, tools가 실행하고, 다시 model로 돌아오는 한 걸음 한 걸음이 찍힙니다. 결과만 보는 게 아니라 흐름을 관찰합니다.
 
+```mermaid
+flowchart TD
+  A["astream 시작"] --> M1["model — 도구 요청 → update"]
+  M1 --> T1["tools — 실행 → update"]
+  T1 --> M2["model — 도구 요청 → update"]
+  M2 --> T2["tools — 실행 → update"]
+  T2 --> M3["model — 최종 답 → update"]
+  M3 --> Z["스트림 끝"]
+  classDef default rx:8,ry:8;
+```
+
 ## 6. 호출 간 기억 — 체크포인트
 
 손으로 짠 루프는 호출이 끝나면 상태가 사라집니다. 다음 질문을 하려면 이전 대화를 직접 다시 넘겨야 합니다. LangGraph는 체크포인터를 붙이면 `thread_id`별로 상태를 저장해, 다음 호출이 이어 가게 합니다.
@@ -127,6 +138,16 @@ state = await app.ainvoke(
 ```
 
 둘째 호출에 이전 대화를 싣지 않았는데도 "서울"을 기억합니다. 같은 `thread_id`의 저장된 상태를 체크포인터가 불러와 이어 붙이기 때문입니다. 여기서는 메모리에 담는 `MemorySaver`를 썼지만, DB에 담는 체크포인터로 바꾸면 프로세스를 껐다 켜도 대화가 이어집니다.
+
+```mermaid
+flowchart LR
+  Q1["호출 1<br/>서울 날씨?"] --> G1["그래프 실행"]
+  G1 -->|"thread=demo 저장"| CP[("체크포인터")]
+  CP -->|"thread=demo 복원"| G2["그래프 실행"]
+  Q2["호출 2<br/>방금 어디?"] --> G2
+  G2 --> A["답: 서울<br/>(이전 대화를 기억)"]
+  classDef default rx:8,ry:8;
+```
 
 ## 7. 예제 코드가 하는 일 및 결과
 
