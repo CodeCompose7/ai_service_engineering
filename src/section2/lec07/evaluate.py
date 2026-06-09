@@ -80,12 +80,12 @@ def evaluate_config(eval_set, chunk_size: int, overlap: int, k: int = K) -> dict
 
 def main() -> int:
     print(f"평가셋 {len(EVAL_SET)}문항, top-{K} 검색\n")
-    print(f"{'청크크기':>6} {'overlap':>7} {'청크수':>5} {'Recall@' + str(K):>9} {'MRR':>6}")
+    print(f"{'size':>5} {'overlap':>7} {'chunks':>6} {'Recall@' + str(K):>9} {'MRR':>5}")
     for cfg in CONFIGS:
         m = evaluate_config(EVAL_SET, cfg["chunk_size"], cfg["overlap"])
         print(
-            f"{cfg['chunk_size']:>6} {cfg['overlap']:>7} {m['chunks']:>5} "
-            f"{m['recall']:>9.2f} {m['mrr']:>6.2f}"
+            f"{cfg['chunk_size']:>5} {cfg['overlap']:>7} {m['chunks']:>6} "
+            f"{m['recall']:>9.2f} {m['mrr']:>5.2f}"
         )
     return 0
 
