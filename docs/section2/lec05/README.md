@@ -55,7 +55,7 @@ import chromadb
 from section2.lec04.embedder import embed
 
 col = chromadb.PersistentClient(path=".chroma").get_or_create_collection(
-    "acme_docs", metadata={"hnsw:space": "cosine"}
+    "rag_docs", metadata={"hnsw:space": "cosine"}
 )
 
 # add — 청크를 임베딩해 저장 (lec04 embed로, LiteLLM 미경유)
@@ -78,7 +78,7 @@ res = col.query(query_embeddings=[embed(question)], n_results=3)
 | Update | `update` · `upsert` | 문서가 바뀌어 그 청크를 다시 임베딩할 때 |
 | Delete | `delete` | 문서가 폐기되어 그 청크를 없앨 때 |
 
-`update`·`delete`는 의미가 분명합니다. 사규가 개정되면 바뀐 청크만 다시 임베딩해 갱신하고, 계약서가 폐기되면 그 청크를 지워 검색에 안 나오게 합니다. 핵심은 청크 id를 문서·청크 번호로 키잉해 두는 것입니다. 그러면 그 문서의 청크만 골라 고치거나 지울 수 있고, 문서 전체를 다시 인덱싱할 필요가 없습니다.
+`update`·`delete`는 의미가 분명합니다. 위키 글이 수정되면 바뀐 청크만 다시 임베딩해 갱신하고, 문서가 빠지면 그 청크를 지워 검색에 안 나오게 합니다. 핵심은 청크 id를 문서·청크 번호로 키잉해 두는 것입니다. 그러면 그 문서의 청크만 골라 고치거나 지울 수 있고, 문서 전체를 다시 인덱싱할 필요가 없습니다.
 
 이것이 lec01에서 말한 RAG의 갱신 이점입니다. 통째로 넣기는 한 글자만 바뀌어도 전체를 다시 보내야 하지만, 벡터DB는 바뀐 청크만 손봅니다.
 
@@ -133,6 +133,29 @@ uv run python src/section2/lec05/store.py
 - `source=notice` 필터를 걸면 관련 없는 공지 두 건만 나옵니다. 필터가 검색 범위를 그 출처로 제한합니다.
 - 공지 하나를 `upsert`로 지하 3층으로 갱신하고 `delete`로 지우니, 41개가 40개로 줍니다. 바뀐 청크만 손보면 됩니다.
 - 디스크에 저장하면 다시 열어도 개수가 유지됩니다. 한 번 인덱싱하면 끝입니다.
+
+### 7.1. 터미널에서 조회하기 (Read CLI)
+
+검색은 한 번 인덱싱해 두고 여러 번 묻는 일이라, 별도의 터미널 도구로 두면 편합니다. [query.py](../../../src/section2/lec05/query.py)는 영속 컬렉션을 열어 질문으로 검색합니다. 비어 있으면 rag.pdf를 한 번 인덱싱하고, 그 뒤로는 디스크의 인덱스를 그대로 씁니다.
+
+```bash
+# 처음 한 번은 인덱싱하고 검색
+uv run python src/section2/lec05/query.py "검색 증강 생성은 어떻게 동작하나요?"
+
+# 그 뒤로는 인덱스를 재사용해 검색만
+uv run python src/section2/lec05/query.py "RAG는 환각을 어떻게 줄이나요?" -k 2
+```
+
+```text
+(인덱싱: rag.pdf 39 청크 → .../data/chroma_db)
+
+질문: 검색 증강 생성은 어떻게 동작하나요?
+  0.731 [rag.pdf] 검색증강생성 검색 증강 생성(Retrieval-augmented generation, RAG)은 ...
+  0.666 [rag.pdf] 모델은 검색된 관련 정보를 사용자의 원래 쿼리에 대한 프롬프트 ...
+  0.636 [rag.pdf] 더 많은 정보를 기반으로 하고 문맥적으로 근거 있는 응답을 생성 ...
+```
+
+영속 컬렉션이라 인덱싱은 처음 한 번뿐이고, 다음부터는 질문만 임베딩해 바로 검색합니다. 인덱스는 `.gitignore`된 `data/chroma_db`에 쌓입니다.
 
 ## 8. 정리
 

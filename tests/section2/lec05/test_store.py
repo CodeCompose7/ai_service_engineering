@@ -3,7 +3,7 @@
 가짜 임베딩으로 Chroma 동작만 검증한다. 실제 임베딩(bge-m3)은 무거워 예제 실행으로 본다.
 """
 
-from section2.lec05.store import delete, index, make_collection, search, upsert
+from section2.lec05.store import delete, get, index, make_collection, search, upsert
 
 
 def _seed(col):
@@ -36,6 +36,21 @@ def test_persistence_survives_reopen(tmp_path):
     index(col, ["청크 하나"], [[1.0, 0.0]], ids=["p0"])
     reopened = make_collection("persist_test", persist_dir=tmp_path)
     assert reopened.count() == 1  # 새 클라이언트로 열어도 유지
+
+
+def test_get_reads_by_id_and_filter():
+    col = make_collection("get_test")
+    index(
+        col,
+        ["문서 청크", "공지 청크"],
+        [[1.0, 0.0], [0.0, 1.0]],
+        metadatas=[{"src": "doc"}, {"src": "notice"}],
+        ids=["d0", "n0"],
+    )
+    by_id = get(col, ids=["d0"])
+    assert by_id[0]["text"] == "문서 청크"
+    by_filter = get(col, where={"src": "notice"})
+    assert [h["id"] for h in by_filter] == ["n0"]  # 유사도 아닌 조건 조회
 
 
 def test_upsert_updates_existing_and_delete_removes():

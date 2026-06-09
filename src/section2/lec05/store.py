@@ -23,7 +23,7 @@ import chromadb
 from section2.lec03.chunker import chunk_text, load_document_text
 from section2.lec04.embedder import embed
 
-DEFAULT_NAME = "acme_docs"
+DEFAULT_NAME = "rag_docs"
 
 
 def make_collection(name: str = DEFAULT_NAME, persist_dir=None):
@@ -67,8 +67,17 @@ def delete(collection, ids=None, where=None) -> None:
     collection.delete(ids=ids, where=where)
 
 
+def get(collection, ids=None, where=None, limit=None) -> list[dict]:
+    """id나 메타데이터 조건으로 청크를 직접 꺼낸다. 유사도 검색이 아닌 조회(Read)다."""
+    res = collection.get(ids=ids, where=where, limit=limit)
+    return [
+        {"id": i, "text": d, "metadata": m}
+        for i, d, m in zip(res["ids"], res["documents"], res["metadatas"], strict=True)
+    ]
+
+
 def search(collection, query_embedding, k: int = 3, where=None) -> list[dict]:
-    """질문 벡터에 가까운 청크 k개를 (텍스트·유사도·메타데이터)로 돌려준다."""
+    """질문 벡터에 가까운 청크 k개를 (텍스트·유사도·메타데이터)로 돌려준다. 유사도 기반 Read다."""
     res = collection.query(
         query_embeddings=[[float(x) for x in query_embedding]], n_results=k, where=where
     )
