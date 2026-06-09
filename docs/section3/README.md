@@ -33,10 +33,10 @@ flowchart LR
 | [lec03](lec03/README.md) | 20 | multi-tool agent | 멀티툴 에이전트 |
 | [lec04](lec04/README.md) | 20 | MCP로 도구 연결 | MCP 연결 에이전트 |
 | [lec05](lec05/README.md) | 22 | LangGraph 기초 | 최소 그래프 |
-| [lec06](lec06/README.md) | 18 | LangGraph 실전 | 자동화 그래프 |
+| [lec06](lec06/README.md) | 22 | LangGraph 실전 | 자동화 그래프 |
 | [lec07](lec07/README.md) | 12 | provider-agnostic 에이전트 | 클라우드·Ollama 양쪽 동작 |
 
-합계 138분, 7단위입니다.
+합계 142분, 7단위입니다.
 
 ## 흐름
 
