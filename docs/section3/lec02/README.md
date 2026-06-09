@@ -129,18 +129,25 @@ def run_threads(queries):
 
 ### 5.3. 비동기 도구 — 도구까지 바꿔야 합니다
 
-가장 깔끔하게 가려면 도구 자체를 `async`로 만듭니다. `httpx.AsyncClient`와 `litellm.acompletion`으로 await하고, `asyncio.gather`로 한꺼번에 기다립니다. 도구를 손대야 하지만, 호출이 수백 건으로 늘어도 스레드보다 가볍게 확장됩니다.
+가장 깔끔하게 가려면 도구 자체를 `async`로 만듭니다. lec01의 동기 도구는 lec01 강의용으로 그대로 두고, 비동기 짝을 [lec02/tools/search_wikipedia_async.py](../../../src/section3/lec02/tools/search_wikipedia_async.py)에 따로 만듭니다. `httpx.AsyncClient`로 네트워크를, `llm.acomplete`로 요약을 await합니다.
 
 ```python
-async def search_wikipedia_async(query, model, kwargs):
+async def search_wikipedia_async(query):
     async with httpx.AsyncClient(...) as client:
         hits = (await client.get(...))      # 네트워크도 await
-    resp = await litellm.acompletion(...)    # LLM 요약도 await
+    summary = await acomplete(...)           # LLM 요약도 await
     return ...
-
-async def run_async(queries):
-    return await asyncio.gather(*[search_wikipedia_async(q, ...) for q in queries])
 ```
+
+루프까지 async가 됩니다. [async_agent.py](../../../src/section3/lec02/async_agent.py)는 한 턴에 온 도구 호출들을 `asyncio.gather`로 동시에 실행합니다. 모델이 검색 두 건을 한 번에 요청하면 둘이 겹쳐 돕니다.
+
+```python
+results = await asyncio.gather(
+    *[dispatch(c.function.name, args) for c, args in ...]   # 같은 턴의 독립 호출을 동시에
+)
+```
+
+도구뿐 아니라 루프까지 async로 바꿔야 하지만, 호출이 수백 건으로 늘어도 스레드보다 가볍게 확장됩니다.
 
 ```bash
 uv run python src/section3/lec02/bench.py
@@ -148,16 +155,16 @@ uv run python src/section3/lec02/bench.py
 
 ```text
 위키 검색 3건(Eiffel Tower, Tokyo Tower, Colosseum)을 세 방식으로:
-  1. 동기 순차              : 27.9s
-  2. 동기 병렬(스레드)         : 7.7s
-  3. 비동기(gather)        : 9.6s
+  1. 동기 순차              : 21.3s
+  2. 동기 병렬(스레드)         : 6.7s
+  3. 비동기(gather)        : 7.7s
 ```
 
 | 방식 | 도구 변형 | 시간(3건) | 핵심 |
 | --- | --- | --- | --- |
-| 동기 순차 | 없음 | ~28s | 셋의 합 |
-| 동기 병렬(스레드) | agent.py만 | ~8s | 도구 그대로, 부르는 쪽만 |
-| 비동기 도구 | 도구를 async로 | ~10s | 많을수록 가볍게 확장 |
+| 동기 순차 | 없음 | ~21s | 셋의 합 |
+| 동기 병렬(스레드) | agent.py만 | ~7s | 도구 그대로, 부르는 쪽만 |
+| 비동기 도구 | 도구를 async로 | ~8s | 많을수록 가볍게 확장 |
 
 병렬과 비동기는 "가장 느린 한 건"만큼만 걸려 순차의 합보다 훨씬 빠릅니다. 검색 세 건에서는 스레드와 비동기가 비슷하고, 둘의 차이는 실행마다의 변동입니다. 스레드는 도구를 안 고쳐도 되어 손쉽고, 비동기는 도구까지 바꿔야 하지만 호출이 많을 때, 또 FastAPI 같은 비동기 서버 안에서 더 자연스럽습니다. 단, 모두 독립적인 호출에만 통합니다. 계산기처럼 직전 결과가 다음 입력이면 순서를 바꿀 수 없습니다.
 

@@ -64,3 +64,19 @@ def complete(messages: list[dict]) -> str:
     model, kwargs = resolve_model()
     resp = completion(model, messages, **kwargs)
     return resp.choices[0].message.content
+
+
+async def acompletion(model: str, messages: list[dict], **kwargs):
+    """completion의 async 짝. lec02 비동기 도구·에이전트가 await로 부른다."""
+    global _call_count
+    import litellm
+
+    _call_count += 1
+    return await litellm.acompletion(model=model, messages=messages, **kwargs)
+
+
+async def acomplete(messages: list[dict]) -> str:
+    """complete의 async 짝. 도구 없이 비동기로 한 번 생성한다."""
+    model, kwargs = resolve_model()
+    resp = await acompletion(model, messages, **kwargs)
+    return resp.choices[0].message.content
