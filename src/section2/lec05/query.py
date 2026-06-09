@@ -3,10 +3,15 @@
 영속 컬렉션을 열어 질문으로 검색한다. 컬렉션이 비어 있으면 rag.pdf를 한 번 인덱싱하고,
 그 뒤로는 디스크에 남은 인덱스를 그대로 써서 질문만 임베딩해 검색한다.
 
+임베딩 모델은 캐시돼 있어도 프로세스마다 디스크에서 메모리로 올리는 데 십수 초가 걸린다.
+그래서 질문을 인자로 주면 한 번 검색하고 끝내지만, 인자 없이 실행하면 모델을 한 번만
+로드하고 여러 질문을 받는 대화형 모드로 들어간다.
+
 실행:
     uv run python src/section2/lec05/query.py "검색 증강 생성이란?"
     uv run python src/section2/lec05/query.py "RAG의 한계는?" -k 5
     uv run python src/section2/lec05/query.py "정보를 어디서 가져오나" --source rag.pdf
+    uv run python src/section2/lec05/query.py            # 대화형 (모델 1회 로드)
 """
 
 import argparse
@@ -31,20 +36,37 @@ def open_index():
     return collection
 
 
+def run_one(collection, text, k, source) -> None:
+    """질문 한 건을 벡터화해 검색하고 결과를 출력한다."""
+    where = {"source": source} if source else None
+    hits = search(collection, embed(text), k=k, where=where)
+    print(f"\n질문: {text}")
+    for hit in hits:
+        print(f"  {hit['similarity']:.3f} [{hit['metadata']['source']}] {hit['text'][:70]}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="벡터DB에서 질문으로 청크를 검색한다")
-    parser.add_argument("query", help="검색할 질문")
+    parser.add_argument("query", nargs="?", help="검색할 질문 (없으면 대화형)")
     parser.add_argument("-k", type=int, default=3, help="가져올 청크 수")
     parser.add_argument("--source", help="이 출처(메타데이터)로 검색을 제한")
     args = parser.parse_args()
 
     collection = open_index()
-    where = {"source": args.source} if args.source else None
-    hits = search(collection, embed(args.query), k=args.k, where=where)
+    if args.query:
+        run_one(collection, args.query, args.k, args.source)
+        return 0
 
-    print(f"\n질문: {args.query}")
-    for hit in hits:
-        print(f"  {hit['similarity']:.3f} [{hit['metadata']['source']}] {hit['text'][:70]}")
+    # 대화형 — 모델은 첫 질문에서 한 번만 로드되고, 그 뒤 질문은 바로 검색된다.
+    print("질문을 입력하세요. 빈 줄이면 종료합니다.")
+    while True:
+        try:
+            text = input("\n질문> ").strip()
+        except EOFError:
+            break
+        if not text:
+            break
+        run_one(collection, text, args.k, args.source)
     return 0
 
 
