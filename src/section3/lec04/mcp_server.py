@@ -30,5 +30,15 @@ def list_memos() -> list[str]:
     return list(_memos)
 
 
+@mcp.resource("memo://all")
+def all_memos() -> str:
+    """저장된 메모 전체를 읽기 전용 리소스로 노출한다.
+
+    도구가 '행동'(저장)이라면, 리소스는 '데이터'다. 클라이언트가 read_resource로 가져와 맥락에
+    넣을 수 있다. 부수효과 없이 읽기만 한다.
+    """
+    return "\n".join(f"- {m}" for m in _memos) or "(아직 메모가 없습니다)"
+
+
 if __name__ == "__main__":
     mcp.run()
