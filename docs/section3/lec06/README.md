@@ -10,7 +10,7 @@
 
 ```mermaid
 flowchart LR
-  L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>provider-agnostic"]
+  L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>계획·자기수정"]
   classDef default rx:8,ry:8;
   classDef now fill:#eaf2ff,stroke:#4a78c0;
   class L6 now;
@@ -52,6 +52,20 @@ flowchart TD
   F -->|"끝 · 모두 무난"| NO["summarize_normal"]
   AL --> E["END"]
   NO --> E
+  classDef default rx:8,ry:8;
+```
+
+[graph.py](../../../src/section3/lec06/graph.py)의 코드 구조입니다. `build_graph`가 노드를 잇고, `run`이 `astream`으로 돌립니다. 도구는 lec03, 요약은 lec02를 씁니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 도시 브리핑"]
+  MAIN --> RUN["run<br/>astream으로 진행"]
+  RUN --> APP["APP = build_graph()"]
+  APP --> FO["fetch_one<br/>도시 1개 (루프)"]
+  APP --> SM["summarize_alert / summarize_normal"]
+  FO --> GW["lec03 geocode·weather"]
+  SM --> ALM["lec02 acomplete"]
   classDef default rx:8,ry:8;
 ```
 
@@ -133,7 +147,22 @@ if "__interrupt__" in out:
 
 ## 7. 예제 코드가 하는 일 및 결과
 
-[briefing.py](../../../src/section3/lec06/briefing.py)는 네 패턴을 한 그래프에 엮습니다. 병렬로 모으고, 실패는 견디고, 발송 전 멈춰 승인을 받고, 갈래로 요약합니다.
+[briefing.py](../../../src/section3/lec06/briefing.py)는 네 패턴을 한 그래프에 엮습니다. 병렬로 모으고, 실패는 견디고, 발송 전 멈춰 승인을 받고, 갈래로 요약합니다. 코드 구조는 이렇습니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 병렬·승인 브리핑"]
+  MAIN --> RUN["run<br/>중단/재개"]
+  RUN --> APP["BRIEFING = build_briefing_graph()"]
+  APP --> CF["city_flow 서브그래프<br/>fetch + RetryPolicy"]
+  APP --> AP["approval<br/>interrupt"]
+  APP --> SM["summarize / skipped"]
+  CF --> GW["lec03 geocode·weather"]
+  SM --> ALM["lec02 acomplete"]
+  classDef default rx:8,ry:8;
+```
+
+그리고 그래프가 스스로 그린 모습입니다.
 
 ```mermaid
 graph TD;

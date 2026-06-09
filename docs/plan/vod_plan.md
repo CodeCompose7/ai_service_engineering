@@ -116,7 +116,7 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 | MCP로 도구 연결 | 20 | MCP 서버 연결, 표준 도구 발견·호출 | MCP 연결 에이전트 |
 | LangGraph 기초 | 22 | 상태·노드·엣지 + 스트리밍·체크포인트 | 최소 그래프 |
 | LangGraph 실전 | 22 | 분기/루프, 병렬(Send)·서브그래프·재시도·사람 개입 | 자동화 그래프 |
-| provider-agnostic 에이전트 | 12 | LiteLLM로 백엔드 교체, Ollama tool calling + JSON 모드 폴백 | 클라우드·Ollama 양쪽 동작 |
+| 계획 수립과 자기수정 | 12 | LangGraph로 plan-and-execute·reflection(generate→critique→revise) 짜기, 반응형과 대비 | 계획·자기수정 에이전트 |
 
 ### S4 — 컨텍스트 & 하네스 엔지니어링: 신뢰성 (98분 / 5단위)
 
