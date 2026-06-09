@@ -1,14 +1,11 @@
-"""lec01 fc의 프로바이더 해석 테스트. 실제 도구 호출 loop는 모델이 필요해 예제로 확인한다."""
+"""llm 헬퍼 테스트 — 프로바이더 해석과 호출 카운터.
+
+실제 도구 호출 loop와 생성은 모델이 필요해 예제 실행으로 확인한다.
+"""
 
 import pytest
 
-from section3.lec01.fc import resolve_model
-from section3.lec01.llm import call_count, reset_calls
-
-
-def test_call_count_resets_to_zero():
-    reset_calls()
-    assert call_count() == 0
+from section3.lec01.llm import call_count, reset_calls, resolve_model
 
 
 def test_resolve_model_prefers_cloud_over_ollama():
@@ -30,3 +27,8 @@ def test_resolve_model_falls_back_to_ollama():
 def test_resolve_model_raises_when_none():
     with pytest.raises(RuntimeError):
         resolve_model({})
+
+
+def test_call_count_resets_to_zero():
+    reset_calls()
+    assert call_count() == 0
