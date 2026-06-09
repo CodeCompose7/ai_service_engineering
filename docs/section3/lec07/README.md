@@ -52,6 +52,21 @@ flowchart TD
   classDef default rx:8,ry:8;
 ```
 
+코드는 노드 셋과 그것을 잇는 `build_graph`, 그래프를 돌리는 `run`으로 이뤄집니다. `planner`는 과제를 단계 목록으로 쪼개 상태의 `plan`에 넣고, `executor`는 `plan[step]`을 실행해 `results`에 더하며 `step`을 한 칸 밉니다. `synthesize`는 단계 결과들을 한 편의 글로 합칩니다. 셋 다 lec02의 `acomplete`로 모델을 부르고, `run`은 `astream`으로 노드가 도는 과정을 찍습니다.
+
+```mermaid
+flowchart TB
+  MAIN["main()"] --> RUN["run<br/>astream으로 진행 출력"]
+  RUN --> APP["APP = build_graph()"]
+  APP --> PL["planner — 계획"]
+  APP --> EX["executor — 단계 실행"]
+  APP --> SY["synthesize — 종합"]
+  PL --> AC["lec02 acomplete"]
+  EX --> AC
+  SY --> AC
+  classDef default rx:8,ry:8;
+```
+
 단계는 앞 결과에 기대므로 순차로 돕니다. lec06의 도시들이 서로 독립이라 `Send`로 병렬이던 것과 대비됩니다. [plan_execute.py](../../../src/section3/lec07/plan_execute.py)를 실행한 결과입니다.
 
 ```text
@@ -98,6 +113,21 @@ flowchart TD
   R -->|"OK · 횟수 끝"| E["END"]
   R -->|"고칠 점 있음"| RV["revise<br/>수정"]
   RV --> R
+  classDef default rx:8,ry:8;
+```
+
+코드는 노드 셋과 `build_graph`, `run`으로 이뤄집니다. `generate`는 초안을, `reflect`는 비평을, `revise`는 고친 초안을 만듭니다. 셋 다 lec02의 `acomplete`로 모델을 부릅니다. `build_graph`가 `reflect` 뒤에 `route`로 갈래를 두어 사이클을 만들고, `run`은 `astream`으로 진행을 찍습니다.
+
+```mermaid
+flowchart TB
+  MAIN["main()"] --> RUN["run<br/>astream으로 진행 출력"]
+  RUN --> APP["APP = build_graph()"]
+  APP --> G["generate — 초안"]
+  APP --> R["reflect — 비평"]
+  APP --> RV["revise — 수정"]
+  G --> AC["lec02 acomplete"]
+  R --> AC
+  RV --> AC
   classDef default rx:8,ry:8;
 ```
 
