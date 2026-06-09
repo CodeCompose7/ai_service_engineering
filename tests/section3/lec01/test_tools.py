@@ -34,9 +34,15 @@ def test_lookup_term_not_found():
     assert lookup_term("없는용어") == "사전에 없는 용어입니다."
 
 
-def test_tools_registry_has_three_schemas():
+def test_tools_registry_has_four_schemas():
     names = {t["function"]["name"] for t in TOOLS}
-    assert names == {"calculate", "current_time", "lookup_term"}
+    assert names == {"calculate", "current_time", "lookup_term", "search_wikipedia"}
+
+
+def test_search_wikipedia_schema_shape():
+    # 실행은 네트워크·LLM이 필요해 예제로 확인하고, 여기서는 스키마만 본다
+    wiki = next(t for t in TOOLS if t["function"]["name"] == "search_wikipedia")
+    assert wiki["function"]["parameters"]["required"] == ["query"]
 
 
 def test_run_tool_dispatches_each():

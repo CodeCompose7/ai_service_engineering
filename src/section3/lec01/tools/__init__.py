@@ -11,12 +11,15 @@ from .clock import SCHEMA as _CLOCK
 from .clock import current_time
 from .glossary import SCHEMA as _GLOSSARY
 from .glossary import lookup_term
+from .search_wikipedia import SCHEMA as _WIKI
+from .search_wikipedia import search_wikipedia
 
 # 도구 이름 → (실행 함수, 스키마)
 _REGISTRY = {
     "calculate": (calculate, _CALC),
     "current_time": (current_time, _CLOCK),
     "lookup_term": (lookup_term, _GLOSSARY),
+    "search_wikipedia": (search_wikipedia, _WIKI),
 }
 
 # 모델에 넘길 스키마 목록
