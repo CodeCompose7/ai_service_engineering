@@ -10,7 +10,7 @@
 
 ```mermaid
 flowchart LR
-  L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>provider-agnostic"]
+  L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>계획·자기수정"]
   classDef default rx:8,ry:8;
   classDef now fill:#eaf2ff,stroke:#4a78c0;
   class L6 now;

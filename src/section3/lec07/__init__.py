@@ -1,1 +1,1 @@
-"""lec07 — provider-agnostic 에이전트."""
+"""lec07 — 계획 수립과 자기수정."""
