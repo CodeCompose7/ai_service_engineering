@@ -20,15 +20,20 @@ CLOUD_KEY_ENV = {
 
 
 def resolve_model(env: dict | None = None) -> tuple[str, dict]:
-    """tool calling이 안정적인 클라우드 프로바이더를 우선 고른다. 없으면 로컬 Ollama로 폴백한다."""
+    """`.env`의 DEFAULT_PROVIDER가 가리키는 프로바이더를 앞세운다. 없으면 준비된 것으로 폴백한다."""
     env = os.environ if env is None else env
-    for name, key in CLOUD_KEY_ENV.items():
-        if env.get(key):
-            return DEFAULT_MODELS[name], {}
+    ready = [name for name, key in CLOUD_KEY_ENV.items() if env.get(key)]
     if env.get("OLLAMA_API_BASE"):
+        ready.append("ollama")
+    default = env.get("DEFAULT_PROVIDER")
+    order = ([default] if default in ready else []) + [n for n in ready if n != default]
+    if not order:
+        raise RuntimeError("준비된 프로바이더가 없습니다. .env에 키를 넣거나 Ollama를 띄우세요.")
+    provider = order[0]
+    if provider == "ollama":
         model = f"ollama/{env.get('OLLAMA_MODEL', 'gemma4:12b')}"
         return model, {"api_base": env.get("OLLAMA_API_BASE")}
-    raise RuntimeError("준비된 프로바이더가 없습니다. .env에 키를 넣거나 Ollama를 띄우세요.")
+    return DEFAULT_MODELS[provider], {}
 
 
 _call_count = 0
