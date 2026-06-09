@@ -115,13 +115,13 @@ def skipped(state: BriefState) -> dict:
 def build_briefing_graph():
     """병렬·서브그래프·재시도·사람 개입을 한 그래프에 엮는다."""
     graph = StateGraph(BriefState)
-    graph.add_node("city_flow", CITY_FLOW)              # 서브그래프를 노드로
+    graph.add_node("city_flow", CITY_FLOW)  # 서브그래프를 노드로
     graph.add_node("approval", approval)
     graph.add_node("summarize_alert", summarize_alert)
     graph.add_node("summarize_normal", summarize_normal)
     graph.add_node("skipped", skipped)
     graph.add_conditional_edges(START, dispatch, ["city_flow"])  # Send fan-out
-    graph.add_edge("city_flow", "approval")                      # 모두 끝나면 fan-in
+    graph.add_edge("city_flow", "approval")  # 모두 끝나면 fan-in
     graph.add_conditional_edges(
         "approval",
         after_approval,
