@@ -3,6 +3,12 @@
 import pytest
 
 from section3.lec01.fc import resolve_model
+from section3.lec01.llm import call_count, reset_calls
+
+
+def test_call_count_resets_to_zero():
+    reset_calls()
+    assert call_count() == 0
 
 
 def test_resolve_model_prefers_cloud_over_ollama():

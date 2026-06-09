@@ -31,10 +31,31 @@ def resolve_model(env: dict | None = None) -> tuple[str, dict]:
     raise RuntimeError("준비된 프로바이더가 없습니다. .env에 키를 넣거나 Ollama를 띄우세요.")
 
 
-def complete(messages: list[dict]) -> str:
-    """도구 없이 한 번 생성한다. 요약처럼 단순한 호출에 쓴다."""
+_call_count = 0
+
+
+def completion(model: str, messages: list[dict], **kwargs):
+    """모든 LiteLLM 호출을 이 한 곳으로 모아 횟수를 센다. 도구 호출이든 요약이든 다 거친다."""
+    global _call_count
     import litellm
 
+    _call_count += 1
+    return litellm.completion(model=model, messages=messages, **kwargs)
+
+
+def reset_calls() -> None:
+    """호출 횟수를 0으로 되돌린다."""
+    global _call_count
+    _call_count = 0
+
+
+def call_count() -> int:
+    """마지막 reset 이후의 LiteLLM 호출 횟수."""
+    return _call_count
+
+
+def complete(messages: list[dict]) -> str:
+    """도구 없이 한 번 생성한다. 요약처럼 단순한 호출에 쓴다."""
     model, kwargs = resolve_model()
-    resp = litellm.completion(model=model, messages=messages, **kwargs)
+    resp = completion(model, messages, **kwargs)
     return resp.choices[0].message.content
