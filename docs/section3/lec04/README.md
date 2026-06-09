@@ -36,7 +36,18 @@ flowchart TB
 
 ## 3. 연결·발견·호출
 
-MCP를 쓰는 흐름은 세 단계입니다. 서버에 연결하고, 어떤 도구가 있는지 발견하고, 고른 도구를 호출합니다.
+lec01~03에서는 도구가 에이전트와 같은 프로세스에 있었습니다. 목록을 우리가 코드에 적었으니 발견할 것도 없고, 모델이 고른 도구를 함수로 바로 불렀습니다.
+
+```mermaid
+sequenceDiagram
+  participant A as 에이전트
+  participant T as 도구 (같은 프로세스)
+  Note over A,T: 연결·발견이 없다 — 도구를 코드에서 이미 안다
+  A->>T: run_tool(name, args) — 바로 호출
+  T-->>A: 결과
+```
+
+MCP는 도구가 별도 서버에 있어, 먼저 연결하고 어떤 도구가 있는지 발견한 뒤 호출합니다. 흐름이 세 단계로 늘어나는 대신, 도구의 구현과 목록이 에이전트 밖으로 빠집니다.
 
 ```mermaid
 sequenceDiagram
@@ -69,6 +80,10 @@ messages.append({"role": "tool", "tool_call_id": call.id, "content": _result_tex
 ```
 
 다른 점은 도구의 실행이 우리 프로세스가 아니라 서버에서 일어난다는 것뿐입니다. lec01에서 본 "도구 실행은 우리 쪽"이 여기서는 "도구 실행은 MCP 서버 쪽"으로 바뀝니다.
+
+### 4.1. 동기·병렬·비동기 — MCP는 비동기가 기본
+
+lec02에서 본 순차·병렬·비동기는 MCP에도 적용됩니다. 다만 MCP의 파이썬 SDK는 비동기가 기본입니다. `ClientSession`도 `call_tool`도 코루틴이라, 우리 에이전트가 async인 까닭입니다. 독립적인 도구를 동시에 부르고 싶으면 한 세션에서 `call_tool`을 `asyncio.gather`로 묶으면 됩니다. MCP 프로토콜이 요청을 id로 구분해 다중화하기 때문입니다. 동기로 쓰려면 그 async를 감싸야 하고, 스레드는 이벤트 루프에 묶인 세션과 잘 맞지 않습니다. 그래서 MCP에서는 sync·thread보다 async가 자연스럽습니다.
 
 ## 5. 예제 코드가 하는 일 및 결과
 
