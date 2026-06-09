@@ -129,7 +129,7 @@ def run_threads(queries):
 
 ### 5.3. 비동기 도구 — 도구까지 바꿔야 합니다
 
-가장 깔끔하게 가려면 도구 자체를 `async`로 만듭니다. lec01의 동기 도구는 lec01 강의용으로 그대로 두고, 비동기 짝을 [lec02/tools/search_wikipedia_async.py](../../../src/section3/lec02/tools/search_wikipedia_async.py)에 따로 만듭니다. `httpx.AsyncClient`로 네트워크를, `llm.acomplete`로 요약을 await합니다.
+가장 깔끔하게 가려면 도구 자체를 `async`로 만듭니다. lec01의 동기 도구는 lec01 강의용으로 그대로 두고, 비동기 짝을 [lec02/tools/search_wikipedia_async.py](../../../src/section3/lec02/tools/search_wikipedia_async.py)에 따로 만듭니다. 호출도 마찬가지로, lec01의 동기 `llm`은 그대로 두고 async 짝을 [lec02/async_llm.py](../../../src/section3/lec02/async_llm.py)에 둡니다. `httpx.AsyncClient`로 네트워크를, `acomplete`로 요약을 await합니다.
 
 ```python
 async def search_wikipedia_async(query):

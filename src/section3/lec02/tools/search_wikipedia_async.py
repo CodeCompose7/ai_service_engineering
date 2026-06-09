@@ -12,7 +12,7 @@ import urllib.parse
 
 import httpx
 
-from section3.lec01.llm import acomplete
+from section3.lec02.async_llm import acomplete
 
 WIKI = "https://en.wikipedia.org"
 HEADERS = {"User-Agent": "ai-service-engineering-edu/0.1 (course example)"}
