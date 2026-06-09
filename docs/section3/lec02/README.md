@@ -115,6 +115,17 @@ def run_sequential(queries):
     return [search_wikipedia(q) for q in queries]   # 하나씩, 차례로
 ```
 
+```mermaid
+gantt
+  title 동기 순차 — 끝나야 다음 (합 ~21s)
+  dateFormat X
+  axisFormat %Ss
+  section 한 스레드
+  검색1 Eiffel : 0, 7
+  검색2 Tokyo : 7, 14
+  검색3 Colosseum : 14, 21
+```
+
 ### 5.2. 동기 병렬 (스레드) — agent.py만 바꾸면 됩니다
 
 동기 도구는 그대로 두고, 부르는 쪽만 스레드 풀로 동시에 던집니다. 검색이 네트워크를 기다리는 동안 GIL을 놓으므로 여러 검색이 겹쳐 돕니다. 도구 코드는 한 글자도 바뀌지 않습니다.
@@ -125,7 +136,20 @@ def run_threads(queries):
         return list(pool.map(search_wikipedia, queries))   # 같은 동기 도구를 동시에
 ```
 
-다만 도구가 공유하는 상태, 예컨대 lec01의 호출 카운터는 스레드 안전하지 않으므로 락을 걸거나 근사로 두어야 합니다.
+```mermaid
+gantt
+  title 동기 병렬(스레드) — 동시에 (가장 느린 하나 ~7s)
+  dateFormat X
+  axisFormat %Ss
+  section 스레드1
+  검색1 Eiffel : 0, 7
+  section 스레드2
+  검색2 Tokyo : 0, 7
+  section 스레드3
+  검색3 Colosseum : 0, 7
+```
+
+세 검색이 같은 순간에 시작해 겹쳐 돕니다. 다만 도구가 공유하는 상태, 예컨대 lec01의 호출 카운터는 스레드 안전하지 않으므로 락을 걸거나 근사로 두어야 합니다.
 
 ### 5.3. 비동기 도구 — 도구까지 바꿔야 합니다
 
@@ -148,6 +172,19 @@ results = await asyncio.gather(
 ```
 
 도구뿐 아니라 루프까지 async로 바꿔야 하지만, 호출이 수백 건으로 늘어도 스레드보다 가볍게 확장됩니다.
+
+```mermaid
+gantt
+  title 비동기 — 한 스레드가 await로 번갈아 (~8s)
+  dateFormat X
+  axisFormat %Ss
+  section 이벤트 루프
+  검색1 Eiffel : 0, 8
+  검색2 Tokyo : 0, 8
+  검색3 Colosseum : 0, 8
+```
+
+스레드와 시간 모양은 비슷하지만, 여러 스레드가 아니라 한 스레드가 await 지점마다 다른 검색으로 옮겨 다니며 겹칩니다.
 
 ```bash
 uv run python src/section3/lec02/bench.py
