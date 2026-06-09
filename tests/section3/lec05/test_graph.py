@@ -9,7 +9,7 @@ import json
 
 from langgraph.graph import END
 
-from section3.lec05.graph import APP, run_tools, should_continue
+from section3.lec05.graph import APP, memory_demo, run_tools, should_continue, stream_run
 
 
 def test_should_continue_routes_to_tools():
@@ -35,3 +35,9 @@ def test_run_tools_executes_lec03_tool_and_serializes():
     msg = out["messages"][0]
     assert msg["role"] == "tool"
     assert json.loads(msg["content"]) == {"user_id": "U001"}
+    assert out["tools_used"] == ["find_user"]  # 두 번째 상태 채널도 누적
+
+
+def test_stream_and_memory_are_coroutines():
+    assert asyncio.iscoroutinefunction(stream_run)
+    assert asyncio.iscoroutinefunction(memory_demo)

@@ -26,12 +26,17 @@ LangGraph는 흐름을 세 부품으로 짭니다.
 | 노드 (Node) | 상태를 받아 갱신하는 함수 | `model`(LLM 호출), `tools`(도구 실행) |
 | 엣지 (Edge) | 노드를 잇는 선, 조건부도 가능 | `model`→(조건)→`tools`/END, `tools`→`model` |
 
-상태는 노드가 돌려준 값을 리듀서로 합칩니다. 우리는 `messages`를 `operator.add`로 이어 붙여 대화가 쌓이게 합니다. 조건 엣지는 분기를 만듭니다. `model` 다음에 도구 호출이 있으면 `tools`로, 없으면 END로 갑니다.
+상태는 노드가 돌려준 값을 리듀서로 합칩니다. 채널마다 리듀서를 지정합니다. 우리 상태는 두 채널을 둡니다. `messages`는 대화를, `tools_used`는 부른 도구 이름을 모읍니다. 둘 다 `operator.add`로 이어 붙입니다.
 
 ```python
 class State(TypedDict):
-    messages: Annotated[list, operator.add]   # 노드가 돌려준 messages를 이어 붙임
+    messages: Annotated[list, operator.add]         # 대화를 이어 붙임
+    tools_used: Annotated[list[str], operator.add]  # 부른 도구 이름을 이어 붙임
 ```
+
+노드는 갱신할 채널만 부분적으로 돌려주고, 리듀서가 기존 값과 합칩니다. `tools` 노드가 `{"tools_used": ["geocode"]}`를 돌려주면 `operator.add`가 기존 목록 뒤에 붙입니다. 메시지 채널에는 LangChain의 `add_messages` 리듀서가 흔히 쓰이지만, 같은 id면 갱신하고 아니면 추가하는 식입니다. 우리 메시지는 OpenAI dict라 단순한 `operator.add`를 씁니다.
+
+조건 엣지는 분기를 만듭니다. `model` 다음에 도구 호출이 있으면 `tools`로, 없으면 END로 갑니다.
 
 ## 3. 손으로 짠 루프 → 그래프
 
@@ -93,30 +98,80 @@ graph TD;
 
 실선은 고정 엣지, 점선은 조건 엣지입니다. `model`에서 점선이 둘로 갈라져 `tools` 또는 END로 가고, `tools`에서 `model`로 실선이 돌아옵니다. 위에서 우리가 그린 그림과 같은 흐름입니다. 노드와 엣지가 코드에 또렷이 박혀 있으니 도구가 이렇게 자동으로 그려집니다.
 
-## 5. 예제 코드가 하는 일 및 결과
+## 5. 노드별로 도는 과정을 본다 — 스트리밍
 
-[graph.py](../../../src/section3/lec05/graph.py)는 위 그래프를 짜고, lec03의 멀티툴 작업을 그래프로 돌립니다.
+`ainvoke`는 최종 상태만 돌려줍니다. `astream`은 노드가 끝날 때마다 그 노드의 갱신을 내줍니다. 그래프가 걸어가는 과정을 그대로 볼 수 있습니다.
+
+```python
+async for update in APP.astream(initial, stream_mode="updates"):
+    for node, delta in update.items():   # 어느 노드가 무엇을 갱신했는지
+        ...
+```
+
+`stream_mode="updates"`는 각 노드가 돌려준 상태 변화를 내줍니다. model이 도구를 요청하고, tools가 실행하고, 다시 model로 돌아오는 한 걸음 한 걸음이 찍힙니다. 결과만 보는 게 아니라 흐름을 관찰합니다.
+
+## 6. 호출 간 기억 — 체크포인트
+
+손으로 짠 루프는 호출이 끝나면 상태가 사라집니다. 다음 질문을 하려면 이전 대화를 직접 다시 넘겨야 합니다. LangGraph는 체크포인터를 붙이면 `thread_id`별로 상태를 저장해, 다음 호출이 이어 가게 합니다.
+
+```python
+app = build_graph(checkpointer=MemorySaver())
+config = {"configurable": {"thread_id": "demo"}}
+
+await app.ainvoke(_initial("서울 날씨 알려줘"), config)
+# 둘째 호출 — 이전 대화를 다시 넘기지 않는다
+state = await app.ainvoke(
+    {"messages": [{"role": "user", "content": "방금 어디 날씨 물어봤지?"}]}, config
+)
+# → "서울 날씨를 물어보셨습니다."
+```
+
+둘째 호출에 이전 대화를 싣지 않았는데도 "서울"을 기억합니다. 같은 `thread_id`의 저장된 상태를 체크포인터가 불러와 이어 붙이기 때문입니다. 여기서는 메모리에 담는 `MemorySaver`를 썼지만, DB에 담는 체크포인터로 바꾸면 프로세스를 껐다 켜도 대화가 이어집니다.
+
+## 7. 예제 코드가 하는 일 및 결과
+
+[graph.py](../../../src/section3/lec05/graph.py)는 위 그래프를 짜고, 기본 실행·스트리밍·체크포인트를 차례로 보입니다.
 
 ```bash
 uv run python src/section3/lec05/graph.py
 ```
 
 ```text
-질문: 서울 날씨 알려주고, alice 주문 내역도 보여줘
-  도구 자취: ['geocode', 'find_user', 'get_weather', 'get_orders']
-  답: 서울은 현재 기온은 17.5°C 이고 대체로 맑습니다.
-      Alice님의 주문 내역은 - 노트북(O100), 마우스(O101)입니다.
+=== 기본 실행 ===
+tools_used: ['geocode', 'find_user', 'get_weather', 'get_orders']
+답: 서울 날씨는 구름 조금이며, 온도는 17.5도입니다. Alice님 주문: 노트북(O100), 마우스(O101)
+
+=== 스트리밍 (노드별로 도는 과정) ===
+질문: 도쿄 날씨 알려주고, bob 주문도 보여줘
+  [model] 도구 요청 → geocode, find_user
+  [tools] 실행 → ['geocode', 'find_user']
+  [model] 도구 요청 → get_weather, get_orders
+  [tools] 실행 → ['get_weather', 'get_orders']
+  [model] 최종 답
+
+=== 체크포인트 (호출 간 기억) ===
+둘째 질문 답: 서울 날씨를 물어보셨습니다.
 ```
 
 읽어낼 점입니다.
 
-- 도구는 lec03 그대로입니다. 같은 멀티툴 라우팅·연계가 일어나고, 바뀐 것은 제어 흐름을 `for` 루프 대신 그래프로 표현한 것뿐입니다.
-- 자취를 보면 `model`과 `tools`를 두 바퀴 돕니다. geocode·find_user를 부르고, 그 결과로 weather·orders를 부른 뒤 답합니다. `tools`→`model` 엣지가 이 루프를 만듭니다.
-- 분기는 `should_continue` 조건 엣지가 정합니다. 도구 호출이 더 없을 때 END로 가 끝납니다.
+- 도구는 lec03 그대로입니다. `tools_used` 채널에 부른 도구가 쌓여, 자취를 따로 모으지 않아도 상태에 남습니다.
+- 스트리밍을 보면 `model`→`tools`→`model`→`tools`→`model`로 그래프가 걸어갑니다. model이 도구를 요청하고 tools가 실행하기를 두 바퀴 돈 뒤 마지막에 답합니다. `tools`→`model` 엣지가 이 루프입니다.
+- 체크포인트 덕에 둘째 질문이 첫째를 기억합니다. 이전 대화를 다시 넘기지 않았는데 "서울"을 답합니다.
 
-## 6. 정리
+## 8. 왜 LangGraph인가 — 정리
 
-- LangGraph는 흐름을 상태·노드·엣지로 짭니다. 코드 안에 숨던 루프와 분기가 그래프로 드러납니다.
-- 손으로 짠 제어 루프를 그래프로 옮겼습니다. 도구는 lec03 그대로이고, 표현만 바뀝니다.
-- 조건 엣지가 분기를, 되돌아오는 엣지가 루프를 만듭니다. 상태는 리듀서로 누적합니다.
-- 그래프는 스스로 다이어그램을 그립니다. 분기와 루프가 복잡해질수록 이 가시성이 값을 합니다. 분기·루프가 더 있는 실전 그래프는 다음 단위에서 다룹니다.
+손으로 짠 루프로도 같은 일을 합니다. LangGraph로 옮겨 얻는 것은 흐름을 다루는 도구들입니다.
+
+| | 손으로 짠 루프 | LangGraph |
+| --- | --- | --- |
+| 흐름 | `for`·`if` 안에 숨음 | 노드·엣지로 드러남 |
+| 그림 | 직접 그림 | `draw_mermaid`로 자동 |
+| 과정 관찰 | print를 박음 | `stream`으로 노드별 |
+| 기억 | 직접 상태 관리 | 체크포인터 + `thread_id` |
+| 분기·루프 | `if`·`while` | 조건 엣지·되돌아오는 엣지 |
+
+- 흐름을 상태·노드·엣지로 짜면, 코드 안에 숨던 루프와 분기가 그래프로 드러나고 스스로 그려집니다.
+- 상태는 리듀서로 누적하고 채널을 여럿 둘 수 있습니다. 스트리밍으로 과정을 보고, 체크포인터로 호출 간 기억을 얻습니다.
+- 도구는 lec03 그대로입니다. 바뀐 것은 흐름의 표현뿐인데, 그 표현이 가시성·스트리밍·기억을 딸려 옵니다.
+- 분기와 루프가 더 많은 실전 그래프는 다음 단위에서 다룹니다.
