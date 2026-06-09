@@ -116,6 +116,7 @@ desktop.ini
 # =============================================================================
 .claude/settings.local.json
 .claude/.credentials.json
+.claude/scheduled_tasks.lock
 
 # =============================================================================
 # Docker
