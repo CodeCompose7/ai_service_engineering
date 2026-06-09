@@ -1,7 +1,7 @@
 # lec06 — LangGraph 실전
 
 > - S3 개요: [docs/section3/README.md](../README.md)
-> - 분량 20분
+> - 분량 18분
 > - 산출물: 자동화 그래프
 
 ## 1. 목표
