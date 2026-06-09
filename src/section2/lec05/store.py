@@ -51,6 +51,22 @@ def build_index(collection, documents, metadatas=None, ids=None) -> None:
     index(collection, documents, embed(documents), metadatas, ids)
 
 
+def upsert(collection, documents, embeddings, metadatas=None, ids=None) -> None:
+    """있으면 갱신, 없으면 추가한다. 문서가 바뀌면 그 청크를 다시 임베딩해 교체한다."""
+    ids = ids or [f"c{i}" for i in range(len(documents))]
+    collection.upsert(
+        ids=ids,
+        documents=list(documents),
+        embeddings=[[float(x) for x in e] for e in embeddings],
+        metadatas=metadatas,
+    )
+
+
+def delete(collection, ids=None, where=None) -> None:
+    """id나 메타데이터 조건으로 청크를 지운다. 문서가 폐기되면 그 청크를 없앤다."""
+    collection.delete(ids=ids, where=where)
+
+
 def search(collection, query_embedding, k: int = 3, where=None) -> list[dict]:
     """질문 벡터에 가까운 청크 k개를 (텍스트·유사도·메타데이터)로 돌려준다."""
     res = collection.query(
@@ -70,9 +86,11 @@ def main() -> int:
     print(f"입력: rag.pdf {len(chunks)} 청크 + 공지 {len(notices)}건")
 
     col = make_collection()
+    chunk_ids = [f"chunk_{i}" for i in range(len(chunks))]
+    notice_ids = [f"notice_{i}" for i in range(len(notices))]
     metas = [{"source": "rag.pdf", "chunk": i} for i in range(len(chunks))]
     metas += [{"source": "notice", "chunk": i} for i in range(len(notices))]
-    build_index(col, chunks + notices, metas)
+    build_index(col, chunks + notices, metas, ids=chunk_ids + notice_ids)
     print(f"컬렉션에 {col.count()}개 저장")
 
     query = "검색 증강 생성은 어떻게 동작하나요?"
@@ -84,6 +102,16 @@ def main() -> int:
     print("\n=== 메타데이터 필터 — source=notice 안에서만 ===")
     for hit in search(col, qv, k=2, where={"source": "notice"}):
         print(f"  {hit['similarity']:.3f} [{hit['metadata']['source']}] {hit['text']}")
+
+    print("\n=== CRUD — 문서가 바뀌면 갱신·삭제 ===")
+    changed = "주차장은 지하 3층으로 바뀌었습니다."
+    upsert(
+        col, [changed], embed([changed]),
+        metadatas=[{"source": "notice", "chunk": 1}], ids=[notice_ids[1]],
+    )
+    print(f"  갱신(upsert): {col.get(ids=[notice_ids[1]])['documents'][0]}")
+    delete(col, ids=[notice_ids[0]])
+    print(f"  삭제(delete) 후 {col.count()}개")
 
     print("\n=== 영속성 — 디스크에 저장하면 재시작해도 유지 ===")
     with tempfile.TemporaryDirectory() as d:
