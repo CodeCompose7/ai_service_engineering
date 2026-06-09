@@ -149,7 +149,33 @@ flowchart LR
   classDef default rx:8,ry:8;
 ```
 
-체크포인터를 고르는 것은 모델이 아니라 우리 코드입니다. `thread_id`가 대화를 가릅니다. 그것을 사용자나 세션 id에 매핑해 두면 그 사람의 대화만 이어지고, 다른 `thread_id`는 완전히 별개라 서로를 모릅니다. 모델은 체크포인터의 존재조차 모르고 복원된 메시지만 받을 뿐, 어느 체크포인트를 쓸지 판단하지 않습니다. 한 `thread_id` 안에는 노드를 지날 때마다 스냅샷이 하나씩 쌓여 여럿이 됩니다. 기본은 가장 최신을 불러오고, 필요하면 과거 스냅샷으로 되감을 수도 있습니다.
+체크포인터를 고르는 것은 모델이 아니라 우리 코드입니다. `thread_id`가 대화를 가릅니다. 그것을 사용자나 세션 id에 매핑해 두면 그 사람의 대화만 이어지고, 다른 `thread_id`는 완전히 별개라 서로를 모릅니다. 모델은 체크포인터의 존재조차 모르고 복원된 메시지만 받을 뿐, 어느 체크포인트를 쓸지 판단하지 않습니다.
+
+### 6.1. 과거로 되감기 — time-travel
+
+한 `thread_id` 안에는 노드를 지날 때마다 스냅샷이 하나씩 쌓입니다. 그래서 한 대화는 스냅샷의 사슬입니다. 기본은 가장 최신 스냅샷에서 이어 가지만, 과거의 한 스냅샷을 골라 거기서 다시 출발할 수도 있습니다. 잘못된 한 걸음을 되돌리거나, 같은 지점에서 다른 갈래를 시도할 때 씁니다.
+
+```python
+# 이 thread의 스냅샷 히스토리 (최신부터)
+for snap in app.get_state_history(config):
+    print(snap.config["configurable"]["checkpoint_id"], len(snap.values["messages"]))
+
+# 과거 스냅샷의 id를 골라 그 지점에서 다시 실행
+past = {"configurable": {"thread_id": "demo", "checkpoint_id": "<과거 id>"}}
+await app.ainvoke({"messages": [{"role": "user", "content": "..."}]}, past)
+```
+
+`get_state_history`는 그 thread의 모든 스냅샷을 최신부터 내줍니다. 각 스냅샷에는 그때의 상태와 고유한 `checkpoint_id`가 있습니다. config에 그 id를 적으면, 기본값인 최신이 아니라 그 지점의 상태에서 출발합니다. 여기서도 고르는 것은 우리지 모델이 아닙니다.
+
+```mermaid
+flowchart LR
+  C0["스냅샷 0<br/>시작"] --> C1["스냅샷 1"] --> C2["스냅샷 2"] --> C3["스냅샷 3"] --> CN["스냅샷 N<br/>최신"]
+  CN -. "기본: 최신에서 이어감" .-> NOW["다음 호출"]
+  C2 -. "checkpoint_id 지정<br/>과거에서 다시" .-> ALT["다른 갈래"]
+  classDef default rx:8,ry:8;
+```
+
+## 7. 예제 코드가 하는 일 및 결과
 
 [graph.py](../../../src/section3/lec05/graph.py)는 위 그래프를 짜고, 기본 실행·스트리밍·체크포인트를 차례로 보입니다.
 
