@@ -101,7 +101,7 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 | 청킹 | 18 | RecursiveCharacterTextSplitter, overlap, 의미 단위 | 청킹 유틸 |
 | 임베딩 | 15 | sentence-transformers(HF) `bge-m3`, 유사도 직관 | 임베딩 함수 |
 | 벡터DB Chroma | 13 | add/query, 메타데이터 필터 | Chroma 컬렉션 |
-| mini RAG | 18 | retrieval → generation → 출처 표시 (Acme 사규) | 동작 mini RAG |
+| mini RAG | 18 | retrieval → generation → 출처 표시 (rag.pdf) | 동작 mini RAG |
 | 검색 평가 | 15 | Recall@k/MRR, 청킹·임베딩 조합 비교 | 평가 노트북 |
 
 ### S3 — Agent 구성: 빌드 (113분 / 6단위)
