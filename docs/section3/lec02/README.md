@@ -189,6 +189,32 @@ gantt
 
 스레드와 시간 모양은 비슷하지만, 여러 스레드가 아니라 한 스레드가 await 지점마다 다른 검색으로 옮겨 다니며 겹칩니다.
 
+비동기 에이전트 [async_agent.py](../../../src/section3/lec02/async_agent.py)의 코드 구조입니다. `run_agent_async`가 한 턴의 도구 호출을 `asyncio.gather`로 동시에 돌립니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 비동기 위키 에이전트"]
+  MAIN --> WA["wiki_agent_async"]
+  WA --> RA["run_agent_async<br/>한 턴을 asyncio.gather로"]
+  RA --> ALM["lec02 async_llm<br/>acompletion"]
+  RA --> TOOL["lec02/tools<br/>search_wikipedia_async"]
+  classDef default rx:8,ry:8;
+```
+
+세 방식을 재는 [bench.py](../../../src/section3/lec02/bench.py)의 구조입니다. 같은 검색 묶음을 순차·스레드·비동기로 돌려 시간을 비교합니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 세 방식 타이밍"]
+  MAIN --> RS["run_sequential<br/>동기 순차"]
+  MAIN --> RT["run_threads<br/>스레드 풀"]
+  MAIN --> RA["run_async<br/>asyncio.gather"]
+  RS --> SW["lec01 search_wikipedia (동기)"]
+  RT --> SW
+  RA --> AW["lec02/tools search_wikipedia_async"]
+  classDef default rx:8,ry:8;
+```
+
 ```bash
 uv run python src/section3/lec02/bench.py
 ```

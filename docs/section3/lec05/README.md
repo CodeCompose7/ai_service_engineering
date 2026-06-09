@@ -177,7 +177,19 @@ flowchart LR
 
 ## 7. 예제 코드가 하는 일 및 결과
 
-[graph.py](../../../src/section3/lec05/graph.py)는 위 그래프를 짜고, 기본 실행·스트리밍·체크포인트를 차례로 보입니다.
+[graph.py](../../../src/section3/lec05/graph.py)는 위 그래프를 짜고, 기본 실행·스트리밍·체크포인트를 차례로 보입니다. `build_graph`가 노드를 잇고, `run`·`stream_run`·`memory_demo`가 같은 그래프를 다르게 돌립니다. 노드는 lec02·lec03 것을 그대로 씁니다.
+
+```mermaid
+flowchart TB
+  MAIN["main() — 기본·스트리밍·메모리"]
+  MAIN --> RUN["run / stream_run / memory_demo"]
+  RUN --> APP["APP = build_graph()"]
+  APP --> CM["call_model<br/>acompletion"]
+  APP --> RT["run_tools<br/>lec03 도구 실행"]
+  CM --> ALM["lec02 async_llm"]
+  RT --> T3["lec03/tools"]
+  classDef default rx:8,ry:8;
+```
 
 ```bash
 uv run python src/section3/lec05/graph.py
