@@ -117,13 +117,14 @@ def run_sequential(queries):
 
 ```mermaid
 gantt
-  title 동기 순차 — 끝나야 다음 (합 ~21s)
+  title 동기 순차 — 끝나야 다음 (합 ~20s)
   dateFormat X
   axisFormat %Ss
+  tickInterval 2second
   section 한 스레드
-  검색1 Eiffel : 0, 7
-  검색2 Tokyo : 7, 14
-  검색3 Colosseum : 14, 21
+  검색1 Eiffel : t1, 0, 8s
+  검색2 Tokyo : t2, after t1, 5s
+  검색3 Colosseum : t3, after t2, 7s
 ```
 
 ### 5.2. 동기 병렬 (스레드) — agent.py만 바꾸면 됩니다
@@ -138,15 +139,16 @@ def run_threads(queries):
 
 ```mermaid
 gantt
-  title 동기 병렬(스레드) — 동시에 (가장 느린 하나 ~7s)
+  title 동기 병렬(스레드) — 동시에, 가장 느린 하나가 끝나면 (~8s)
   dateFormat X
   axisFormat %Ss
+  tickInterval 2second
   section 스레드1
-  검색1 Eiffel : 0, 7
+  검색1 Eiffel : t1, 0, 8s
   section 스레드2
-  검색2 Tokyo : 0, 7
+  검색2 Tokyo : t2, 0, 5s
   section 스레드3
-  검색3 Colosseum : 0, 7
+  검색3 Colosseum : t3, 0, 7s
 ```
 
 세 검색이 같은 순간에 시작해 겹쳐 돕니다. 다만 도구가 공유하는 상태, 예컨대 lec01의 호출 카운터는 스레드 안전하지 않으므로 락을 걸거나 근사로 두어야 합니다.
@@ -178,10 +180,11 @@ gantt
   title 비동기 — 한 스레드가 await로 번갈아 (~8s)
   dateFormat X
   axisFormat %Ss
+  tickInterval 2second
   section 이벤트 루프
-  검색1 Eiffel : 0, 8
-  검색2 Tokyo : 0, 8
-  검색3 Colosseum : 0, 8
+  검색1 Eiffel : t1, 0, 8s
+  검색2 Tokyo : t2, 0, 5s
+  검색3 Colosseum : t3, 0, 7s
 ```
 
 스레드와 시간 모양은 비슷하지만, 여러 스레드가 아니라 한 스레드가 await 지점마다 다른 검색으로 옮겨 다니며 겹칩니다.
