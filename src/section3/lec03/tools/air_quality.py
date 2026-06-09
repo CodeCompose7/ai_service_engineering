@@ -2,11 +2,23 @@
 
 날씨 도구와 마찬가지로 좌표만 받는다. 두 도구는 서로의 결과가 필요 없어 독립적이므로, 한 도시의
 날씨와 미세먼지를 동시에 물어볼 수 있다.
+
+리턴은 AirQuality dataclass다. 에이전트가 asdict로 직렬화해 모델에 넘긴다.
 """
+
+from dataclasses import dataclass
 
 import httpx
 
+from section3.lec03.tools.errors import ToolError
+
 AIR = "https://air-quality-api.open-meteo.com/v1/air-quality"
+
+
+@dataclass
+class AirQuality:
+    pm2_5: float
+    grade: str
 
 
 def _grade(pm: float) -> str:
@@ -20,15 +32,15 @@ def _grade(pm: float) -> str:
     return "매우 나쁨"
 
 
-async def get_air_quality(latitude: float, longitude: float) -> dict:
+async def get_air_quality(latitude: float, longitude: float) -> AirQuality:
     """위도·경도로 현재 초미세먼지(pm2.5) 농도와 등급을 가져온다."""
     params = {"latitude": latitude, "longitude": longitude, "current": "pm2_5"}
     async with httpx.AsyncClient(timeout=10) as client:
         cur = (await client.get(AIR, params=params)).json().get("current", {})
     pm = cur.get("pm2_5")
     if pm is None:
-        return {"error": "미세먼지 정보를 가져오지 못했습니다."}
-    return {"pm2_5": pm, "grade": _grade(pm)}
+        raise ToolError("미세먼지 정보를 가져오지 못했습니다.")
+    return AirQuality(pm2_5=pm, grade=_grade(pm))
 
 
 SCHEMA = {

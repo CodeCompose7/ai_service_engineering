@@ -15,16 +15,31 @@ asyncio.gather로 동시에 실행된다.
 
 import asyncio
 import json
+from dataclasses import asdict
 
 from section3.lec01.llm import resolve_model
 from section3.lec02.async_llm import acompletion, call_count, reset_calls
 from section3.lec03.tools import TOOLS, run_tool
+from section3.lec03.tools.errors import ToolError
 
 SYSTEM = (
     "너는 여러 도구를 쓰는 도우미다. 질문에 맞는 도구를 골라 부른다. 날씨·미세먼지는 먼저 "
     "geocode로 좌표를 얻어 넘기고, 주문 조회는 find_user로 id를 얻어 get_orders·get_order_detail로 "
     "이어 간다. 도구 결과만 근거로 한국어로 답한다."
 )
+
+
+async def _call(name: str, args: dict) -> str:
+    """도구를 부르고 결과를 메시지용 JSON 문자열로 만든다.
+
+    도구는 dataclass를 돌려주므로 asdict로 dict로 바꿔 직렬화한다. 도구가 막히면(ToolError)
+    에러를 담아, 모델이 그 사실을 보고 답하게 한다.
+    """
+    try:
+        payload = asdict(await run_tool(name, args))
+    except ToolError as exc:
+        payload = {"error": str(exc)}
+    return json.dumps(payload, ensure_ascii=False)
 
 
 async def run_agent(task: str, max_steps: int = 10) -> dict:
@@ -47,18 +62,13 @@ async def run_agent(task: str, max_steps: int = 10) -> dict:
                 "llm_calls": call_count(),
             }
         parsed = [json.loads(c.function.arguments) for c in msg.tool_calls]
-        results = await asyncio.gather(
-            *[run_tool(c.function.name, a) for c, a in zip(msg.tool_calls, parsed, strict=True)]
+        # 한 턴의 호출을 동시에 실행하고, 각 결과를 메시지용 JSON으로 받는다.
+        contents = await asyncio.gather(
+            *[_call(c.function.name, a) for c, a in zip(msg.tool_calls, parsed, strict=True)]
         )
-        for call, args, result in zip(msg.tool_calls, parsed, results, strict=True):
+        for call, args, content in zip(msg.tool_calls, parsed, contents, strict=True):
             trace.append({"name": call.function.name, "args": args})
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": call.id,
-                    "content": json.dumps(result, ensure_ascii=False),
-                }
-            )
+            messages.append({"role": "tool", "tool_call_id": call.id, "content": content})
     return {"answer": None, "model": model, "trace": trace, "llm_calls": call_count()}
 
 

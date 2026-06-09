@@ -2,9 +2,15 @@
 
 geocode가 준 위도·경도를 받아 현재 기온과 날씨 상태를 돌려준다. 미세먼지 도구와 입력이 같아
 (좌표만 필요) 서로 독립적이다. 그래서 둘을 동시에 부를 수 있다.
+
+리턴은 Weather dataclass다. 에이전트가 asdict로 직렬화해 모델에 넘긴다.
 """
 
+from dataclasses import dataclass
+
 import httpx
+
+from section3.lec03.tools.errors import ToolError
 
 FORECAST = "https://api.open-meteo.com/v1/forecast"
 # WMO weather code를 한국어로
@@ -16,7 +22,13 @@ WMO = {
 }
 
 
-async def get_weather(latitude: float, longitude: float) -> dict:
+@dataclass
+class Weather:
+    temperature_c: float
+    condition: str
+
+
+async def get_weather(latitude: float, longitude: float) -> Weather:
     """위도·경도로 현재 기온과 날씨 상태를 가져온다."""
     params = {
         "latitude": latitude,
@@ -25,8 +37,10 @@ async def get_weather(latitude: float, longitude: float) -> dict:
     }
     async with httpx.AsyncClient(timeout=10) as client:
         cur = (await client.get(FORECAST, params=params)).json().get("current", {})
+    if cur.get("temperature_2m") is None:
+        raise ToolError("날씨 정보를 가져오지 못했습니다.")
     code = cur.get("weather_code")
-    return {"temperature_c": cur.get("temperature_2m"), "condition": WMO.get(code, f"코드 {code}")}
+    return Weather(temperature_c=cur.get("temperature_2m"), condition=WMO.get(code, f"코드 {code}"))
 
 
 SCHEMA = {

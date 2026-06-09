@@ -5,6 +5,7 @@ import asyncio
 import pytest
 
 from section3.lec03.tools import TOOLS, run_tool
+from section3.lec03.tools.shop import User
 
 
 def test_six_tools_registered():
@@ -20,7 +21,7 @@ def test_six_tools_registered():
 
 
 def test_run_tool_dispatches():
-    assert asyncio.run(run_tool("find_user", {"name": "bob"})) == {"user_id": "U002"}
+    assert asyncio.run(run_tool("find_user", {"name": "bob"})) == User(user_id="U002")
 
 
 def test_run_tool_unknown_raises():
