@@ -139,7 +139,32 @@ uv run python src/section2/lec07/evaluate.py
 - 1000은 다 찾지만(적중률 1.00) MRR이 0.87로 떨어집니다. 청크가 커 여러 주제가 섞이니 정답이 1위가 아닌 경우가 생깁니다.
 - 정답이 한 설정에 고정돼 있지 않습니다. 데이터와 질문에 따라 다르므로, 이렇게 숫자로 재서 고릅니다.
 
-## 6. 정리
+## 6. 웹에서 조회·평가하기
+
+같은 기능을 브라우저에서도 쓸 수 있게 작은 FastAPI 앱을 둡니다. [app.py](../../../src/section2/lec07/app.py)는 질문을 검색·생성하는 조회와 EVAL_SET 평가를 웹으로 제공합니다.
+
+```bash
+uv run uvicorn section2.lec07.app:app
+# 브라우저에서 http://127.0.0.1:8000 을 연다
+```
+
+```mermaid
+flowchart LR
+  B["브라우저"] --> Q["/api/query<br/>검색·생성 + 근거"]
+  B --> E["/api/eval<br/>EVAL_SET 채점"]
+  Q --> RAG["lec06 mini RAG"]
+  E --> EV["lec07 evaluate"]
+  RAG --> IDX["lec05 벡터DB"]
+  EV --> IDX
+  classDef default rx:8,ry:8;
+```
+
+- 질문 조회: 질문을 넣으면 mini RAG가 답과 근거(청크 순위·유사도)를 보여줍니다.
+- EVAL_SET 평가: 버튼 한 번으로 평가셋 문항별 적중 순위와 Hit Rate@k·MRR을 표로 봅니다.
+
+임베딩 모델은 서버를 띄운 뒤 첫 요청에서 한 번만 메모리에 올라가고, 그 뒤 요청은 빠릅니다. lec05에서 말한 "한 번 로드, 여러 번 서빙"을 실제 서버로 보이는 셈입니다. 단발 CLI가 매번 모델을 다시 올리던 것과 달리, 서버는 한 번만 올립니다. 생성은 lec06과 같이 LiteLLM을 거치므로 `DEFAULT_PROVIDER`만 바꾸면 클라우드·로컬 어느 모델로도 같은 앱이 돕니다.
+
+## 7. 정리
 
 - 검색 평가는 정답이 정해진 질문 묶음으로 검색이 근거를 잘 가져오는지 재는 일입니다.
 - Hit Rate@k는 정답을 상위 k 안에 넣었는지, MRR은 얼마나 위에서 찾았는지를 봅니다.
