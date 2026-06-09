@@ -114,9 +114,9 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 | 단일 도구 에이전트 | 22 | 한 도구로 end-to-end | 동작 에이전트 |
 | multi-tool agent | 20 | 도구 여러 개 라우팅 | 멀티툴 에이전트 |
 | MCP로 도구 연결 | 20 | MCP 서버 연결, 표준 도구 발견·호출 | MCP 연결 에이전트 |
-| LangGraph 기초 | 18 | 상태·노드·엣지 개념 | 최소 그래프 |
-| LangGraph 실전 | 20 | 분기/루프 있는 흐름 (도구 호출 자동화 예) | 자동화 그래프 |
-| provider-agnostic 에이전트 | 14 | LiteLLM로 백엔드 교체, Ollama tool calling + JSON 모드 폴백 | 클라우드·Ollama 양쪽 동작 |
+| LangGraph 기초 | 22 | 상태·노드·엣지 + 스트리밍·체크포인트 | 최소 그래프 |
+| LangGraph 실전 | 18 | 분기/루프 있는 흐름 (도구 호출 자동화 예) | 자동화 그래프 |
+| provider-agnostic 에이전트 | 12 | LiteLLM로 백엔드 교체, Ollama tool calling + JSON 모드 폴백 | 클라우드·Ollama 양쪽 동작 |
 
 ### S4 — 컨텍스트 & 하네스 엔지니어링: 신뢰성 (102분 / 5단위)
 

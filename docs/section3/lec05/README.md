@@ -1,7 +1,7 @@
 # lec05 — LangGraph 기초
 
 > - S3 개요: [docs/section3/README.md](../README.md)
-> - 분량 18분
+> - 분량 22분
 > - 산출물: 최소 그래프
 
 ## 1. 목표
