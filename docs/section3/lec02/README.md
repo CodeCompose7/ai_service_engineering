@@ -87,7 +87,81 @@ flowchart TD
 
 다만 우리 `run_agent`는 받은 도구 호출을 `for` 루프로 차례차례 실행합니다. 검색처럼 네트워크를 기다리는 도구라면, 독립 호출을 동시에 실행해 더 빠르게 만들 여지가 있습니다. 이 단위는 단순함을 위해 순차로 둡니다.
 
-## 5. 예제 코드가 하는 일 및 결과
+## 5. 도구 실행: 순차 → 병렬 → 비동기
+
+4.1에서 봤듯 독립적인 도구 호출은 동시에 실행할 수 있습니다. 위키 검색 세 건을 세 방식으로 돌려, 걸리는 시간이 어떻게 달라지는지 [bench.py](../../../src/section3/lec02/bench.py)로 잽니다.
+
+```mermaid
+flowchart TB
+  subgraph SEQ["순차 — 셋의 합"]
+    direction LR
+    a1["검색1"] --> a2["검색2"] --> a3["검색3"]
+  end
+  subgraph PAR["병렬·비동기 — 가장 느린 하나"]
+    direction TB
+    b0["시작"] --> b1["검색1"]
+    b0 --> b2["검색2"]
+    b0 --> b3["검색3"]
+  end
+  classDef default rx:8,ry:8;
+```
+
+### 5.1. 동기 순차 — 지금 방식
+
+하나가 끝나야 다음을 시작합니다. 시간은 세 검색의 합입니다. `run_agent`가 지금 도구 호출을 처리하는 방식이 이것입니다. 각 검색이 네트워크와 LLM 요약을 기다리는 동안 다른 검색은 놀고 있습니다.
+
+```python
+def run_sequential(queries):
+    return [search_wikipedia(q) for q in queries]   # 하나씩, 차례로
+```
+
+### 5.2. 동기 병렬 (스레드) — agent.py만 바꾸면 됩니다
+
+동기 도구는 그대로 두고, 부르는 쪽만 스레드 풀로 동시에 던집니다. 검색이 네트워크를 기다리는 동안 GIL을 놓으므로 여러 검색이 겹쳐 돕니다. 도구 코드는 한 글자도 바뀌지 않습니다.
+
+```python
+def run_threads(queries):
+    with ThreadPoolExecutor(max_workers=len(queries)) as pool:
+        return list(pool.map(search_wikipedia, queries))   # 같은 동기 도구를 동시에
+```
+
+다만 도구가 공유하는 상태, 예컨대 lec01의 호출 카운터는 스레드 안전하지 않으므로 락을 걸거나 근사로 두어야 합니다.
+
+### 5.3. 비동기 도구 — 도구까지 바꿔야 합니다
+
+가장 깔끔하게 가려면 도구 자체를 `async`로 만듭니다. `httpx.AsyncClient`와 `litellm.acompletion`으로 await하고, `asyncio.gather`로 한꺼번에 기다립니다. 도구를 손대야 하지만, 호출이 수백 건으로 늘어도 스레드보다 가볍게 확장됩니다.
+
+```python
+async def search_wikipedia_async(query, model, kwargs):
+    async with httpx.AsyncClient(...) as client:
+        hits = (await client.get(...))      # 네트워크도 await
+    resp = await litellm.acompletion(...)    # LLM 요약도 await
+    return ...
+
+async def run_async(queries):
+    return await asyncio.gather(*[search_wikipedia_async(q, ...) for q in queries])
+```
+
+```bash
+uv run python src/section3/lec02/bench.py
+```
+
+```text
+위키 검색 3건(Eiffel Tower, Tokyo Tower, Colosseum)을 세 방식으로:
+  1. 동기 순차              : 27.9s
+  2. 동기 병렬(스레드)         : 7.7s
+  3. 비동기(gather)        : 9.6s
+```
+
+| 방식 | 도구 변형 | 시간(3건) | 핵심 |
+| --- | --- | --- | --- |
+| 동기 순차 | 없음 | ~28s | 셋의 합 |
+| 동기 병렬(스레드) | agent.py만 | ~8s | 도구 그대로, 부르는 쪽만 |
+| 비동기 도구 | 도구를 async로 | ~10s | 많을수록 가볍게 확장 |
+
+병렬과 비동기는 "가장 느린 한 건"만큼만 걸려 순차의 합보다 훨씬 빠릅니다. 검색 세 건에서는 스레드와 비동기가 비슷하고, 둘의 차이는 실행마다의 변동입니다. 스레드는 도구를 안 고쳐도 되어 손쉽고, 비동기는 도구까지 바꿔야 하지만 호출이 많을 때, 또 FastAPI 같은 비동기 서버 안에서 더 자연스럽습니다. 단, 모두 독립적인 호출에만 통합니다. 계산기처럼 직전 결과가 다음 입력이면 순서를 바꿀 수 없습니다.
+
+## 6. 예제 코드가 하는 일 및 결과
 
 [agent.py](../../../src/section3/lec02/agent.py)는 같은 `run_agent`로 계산기 에이전트와 위키 검색 에이전트를 돌립니다.
 
@@ -139,9 +213,10 @@ uv run python src/section3/lec02/agent.py
 - 위키 검색 에이전트는 같은 루프인데 도구만 바뀌었습니다. 주제가 둘이면 검색을 두 번 합니다. 코드의 `run_agent`는 한 글자도 다르지 않습니다.
 - 같은 "도구 2번"이어도 위키 쪽은 LLM이 4회입니다. `search_wikipedia`가 결과를 요약하느라 안에서 LLM을 또 쓰기 때문입니다. 도구가 무엇을 하느냐에 따라 비용이 달라집니다.
 
-## 6. 정리
+## 7. 정리
 
 - 에이전트는 모델 + 도구 + 제어 루프입니다. 모델이 행동을 정하고 도구가 실행하며, 루프가 작업이 끝날 때까지 반복합니다.
 - 단계를 우리가 짜지 않습니다. 모델이 매 스텝 다음 행동을 스스로 정하고, `max_steps`가 끝없는 반복만 막습니다.
 - 루프는 도구와 무관합니다. `run_agent`에 도구만 바꿔 끼우면 계산기 에이전트도, 검색 에이전트도 됩니다.
+- 독립적인 도구 호출은 순차 대신 병렬·비동기로 실행해 시간을 줄일 수 있습니다. 스레드는 부르는 쪽만, 비동기는 도구까지 바꿉니다.
 - LLM 호출 수는 작업의 단계 수와 도구의 내부 동작에 따라 늘어납니다. 도구를 하나에서 여럿으로 늘리고 무엇을 부를지 고르는 라우팅은 다음 단위에서 다룹니다.
