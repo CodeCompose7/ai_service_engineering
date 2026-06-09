@@ -119,24 +119,42 @@ def answer(collection, question, k: int = 3, window: int = 1) -> dict:
     return {"answer": text, "model": model, "hits": hits, "contexts": contexts}
 
 
+def _preview(messages, contexts) -> None:
+    """LLM에 보내는 프롬프트의 모양을 짧게 보여준다. 근거가 어떻게 주입되는지 확인용."""
+    print("LLM에 보내는 프롬프트 (미리보기):")
+    print(f"  [system] {messages[0]['content'][:48]}...")
+    print(f"  [user] 근거 {len(contexts)}청크 + 질문")
+    for i, c in enumerate(contexts[:2], 1):
+        print(f"    [{i}] {c['text'][:34]}...")
+    if len(contexts) > 2:
+        print(f"    ... (총 {len(contexts)}청크)")
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
     load_dotenv()
-    question = sys.argv[1] if len(sys.argv) > 1 else "검색 증강 생성은 어떻게 동작하나요?"
-
     collection = open_index()
-    result = answer(collection, question, k=3, window=1)
 
-    print(f"질문: {question}\n")
-    print(f"답 ({result['model']}):")
-    print(result["answer"])
+    print("=== 1. 근거가 있는 질문 ===")
+    q1 = sys.argv[1] if len(sys.argv) > 1 else "검색 증강 생성은 어떻게 동작하나요?"
+    hits = retrieve(collection, q1, k=3)
+    contexts = expand_with_neighbors(collection, hits, window=1)
+    messages = build_messages(q1, contexts)
+    print(f"질문: {q1}\n")
+    _preview(messages, contexts)
+    model, text = generate(messages)
+    print(f"\n답 ({model}):\n{text}")
+    sources = ", ".join(f"#{h['metadata']['chunk']}({h['similarity']:.2f})" for h in hits)
+    print(f"출처: {sources}")
 
-    print(f"\n검색한 근거 {len(result['hits'])}개 (이웃 포함 {len(result['contexts'])}청크 전달):")
-    for hit in result["hits"]:
-        meta = hit["metadata"]
-        head = f"{meta['source']} #{meta['chunk']}"
-        print(f"  {hit['similarity']:.3f} [{head}] {hit['text'][:36]}...")
+    print("\n=== 2. 근거 밖 질문 — grounding ===")
+    q2 = "이 회사의 환불 정책은 어떻게 되나요?"
+    result = answer(collection, q2, k=3, window=1)
+    best = max(h["similarity"] for h in result["hits"])
+    print(f"질문: {q2}")
+    print(f"답 ({result['model']}): {result['answer']}")
+    print(f"검색 최고 유사도 {best:.3f} — 낮으니 근거가 없고, 지어내지 않습니다")
     return 0
 
 
