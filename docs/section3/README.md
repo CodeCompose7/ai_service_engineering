@@ -2,9 +2,9 @@
 
 > 상위 계획: [docs/plan/vod_plan.md](../plan/vod_plan.md)의 S3 항목
 
-도구를 쓰는 에이전트를 "동작하게" 만드는 빌드 레이어입니다. 모델이 스스로 도구를 부르는 function calling에서 시작해, 한 도구 에이전트, 여러 도구를 라우팅하는 멀티툴 에이전트로 넓히고, LangGraph로 분기·루프가 있는 흐름까지 만듭니다. 마지막으로 같은 에이전트를 클라우드와 로컬 Ollama 어느 백엔드로도 돌리게 합니다.
+도구를 쓰는 에이전트를 "동작하게" 만드는 빌드 레이어입니다. 모델이 스스로 도구를 부르는 function calling에서 시작해, 한 도구 에이전트, 여러 도구를 라우팅하는 멀티툴 에이전트로 넓히고, LangGraph로 분기·루프가 있는 흐름까지 만듭니다. 마지막으로 반응형을 넘어 계획 수립과 자기수정 같은 다른 에이전트 패턴을 봅니다.
 
-이 섹션을 마치면 도구를 호출해 일을 처리하고, 상태와 분기를 가진 그래프로 흐름을 제어하며, 프로바이더를 바꿔 끼울 수 있는 동작하는 에이전트가 손에 들어옵니다.
+이 섹션을 마치면 도구를 호출해 일을 처리하고, 상태와 분기를 가진 그래프로 흐름을 제어하며, 계획·자기수정 같은 패턴까지 짜는 동작하는 에이전트가 손에 들어옵니다.
 
 ## 학습 방식
 
@@ -14,7 +14,7 @@ S1·S2와 같습니다. 예제 코드는 이 저장소로 공유되며, devconta
 
 모든 LLM 호출은 S1·S2처럼 LiteLLM을 경유합니다. function calling도 `litellm.completion`의 tool 인자로 두어, 클라우드와 로컬을 같은 코드로 오갑니다.
 
-로컬 Ollama 실행에는 갈래가 있습니다. tool calling을 지원하는 모델은 그대로 도구를 부르고, 지원하지 않는 모델은 JSON 모드로 폴백해 같은 결과를 냅니다. 이 폴백이 provider-agnostic 에이전트의 핵심입니다.
+그래서 클라우드든 로컬 Ollama든 같은 코드로 오갑니다. 능력이 부족한 모델을 우아하게 강등하는 폴백은 S4의 하네스 엔지니어링에서 다룹니다.
 
 ```mermaid
 flowchart LR
@@ -34,17 +34,17 @@ flowchart LR
 | [lec04](lec04/README.md) | 20 | MCP로 도구 연결 | MCP 연결 에이전트 |
 | [lec05](lec05/README.md) | 22 | LangGraph 기초 | 최소 그래프 |
 | [lec06](lec06/README.md) | 22 | LangGraph 실전 | 자동화 그래프 |
-| [lec07](lec07/README.md) | 12 | provider-agnostic 에이전트 | 클라우드·Ollama 양쪽 동작 |
+| [lec07](lec07/README.md) | 12 | 계획 수립과 자기수정 | 계획·자기수정 에이전트 |
 
 합계 142분, 7단위입니다.
 
 ## 흐름
 
-도구를 부르는 한 번의 호출에서 시작해 점점 넓힙니다. function calling 원리를 익히고, 한 도구로 end-to-end 에이전트를 만들고, 여러 도구를 라우팅합니다. 그다음 도구를 직접 짜는 대신 MCP 서버에 표준으로 연결하고, LangGraph로 상태·분기·루프가 있는 흐름을 짜며, 마지막으로 백엔드를 바꿔 끼웁니다.
+도구를 부르는 한 번의 호출에서 시작해 점점 넓힙니다. function calling 원리를 익히고, 한 도구로 end-to-end 에이전트를 만들고, 여러 도구를 라우팅합니다. 그다음 도구를 직접 짜는 대신 MCP 서버에 표준으로 연결하고, LangGraph로 상태·분기·루프가 있는 흐름을 짜며, 마지막으로 계획 수립과 자기수정 패턴을 봅니다.
 
 ```mermaid
 flowchart LR
-  L1["lec01<br/>function calling"] --> L2["lec02<br/>단일 도구"] --> L3["lec03<br/>멀티툴"] --> L4["lec04<br/>MCP 연결"] --> L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>provider-agnostic"]
+  L1["lec01<br/>function calling"] --> L2["lec02<br/>단일 도구"] --> L3["lec03<br/>멀티툴"] --> L4["lec04<br/>MCP 연결"] --> L5["lec05<br/>LangGraph 기초"] --> L6["lec06<br/>LangGraph 실전"] --> L7["lec07<br/>계획·자기수정"]
   classDef default rx:8,ry:8;
 ```
 
