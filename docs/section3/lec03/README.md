@@ -44,7 +44,37 @@ flowchart TD
 
 위치 도구는 키 없이 쓰는 Open-Meteo를 부릅니다. `geocode`의 `name`은 영어로 줍니다. 검색이 영어로 더 잘 맞습니다. 쇼핑 도구는 네트워크 없이 사전으로 답해, 라우팅·연계에만 집중하게 합니다. 도구는 모두 [lec03/tools](../../../src/section3/lec03/tools)에 단원별로 새로 두었습니다.
 
-도구는 결과를 dict가 아니라 dataclass로 돌려줍니다. `geocode`는 `Location`을, `get_weather`는 `Weather`를 돌려주는 식입니다. 타입으로 출력의 계약이 또렷해지고, 에이전트는 경계에서 `asdict`로 JSON으로 바꿔 모델에 넘깁니다. 없는 도시나 사용자는 `ToolError`로 올려, 성공 리턴 타입을 깨끗하게 둡니다. section1에서 Pydantic으로 LLM이 뱉은 JSON, 곧 못 믿을 입력을 검증했다면, 여기 dataclass는 반대로 우리가 만들어 모델에 보내는 출력의 계약입니다.
+### 3.1. 리턴 — dict 대신 dataclass
+
+도구는 결과를 dict가 아니라 dataclass로 돌려줍니다. `geocode`는 `Location`을, `get_weather`는 `Weather`를 돌려주는 식입니다. 타입으로 출력의 계약이 또렷해지고, 없는 도시나 사용자는 `ToolError`로 올려 성공 리턴 타입을 깨끗하게 둡니다.
+
+```python
+# 도구는 dict 대신 dataclass를 돌려준다
+@dataclass
+class Weather:
+    temperature_c: float
+    condition: str
+
+async def get_weather(latitude, longitude) -> Weather:
+    ...
+    if cur.get("temperature_2m") is None:
+        raise ToolError("날씨 정보를 가져오지 못했습니다.")   # 실패는 예외로 분리
+    return Weather(temperature_c=cur["temperature_2m"], condition=...)
+```
+
+dataclass는 그대로 메시지에 넣을 수 없으니, 에이전트가 경계에서 `asdict`로 JSON으로 바꿉니다. 도구가 막히면 그 자리에서 에러를 담아, 모델이 사실을 보고 답하게 합니다.
+
+```python
+# 에이전트 경계: dataclass → asdict → JSON
+async def _call(name, args) -> str:
+    try:
+        payload = asdict(await run_tool(name, args))   # Weather → {"temperature_c": 17.8, "condition": "대체로 맑음"}
+    except ToolError as exc:
+        payload = {"error": str(exc)}
+    return json.dumps(payload, ensure_ascii=False)
+```
+
+section1에서 Pydantic으로 LLM이 뱉은 JSON, 곧 못 믿을 입력을 검증했다면, 여기 dataclass는 반대로 우리가 만들어 모델에 보내는 출력의 계약입니다.
 
 ## 4. 연계 — 앞 도구의 결과가 다음 입력
 
