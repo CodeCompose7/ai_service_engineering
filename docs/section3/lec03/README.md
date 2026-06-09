@@ -76,6 +76,44 @@ async def _call(name, args) -> str:
 
 section1에서 Pydantic으로 LLM이 뱉은 JSON, 곧 못 믿을 입력을 검증했다면, 여기 dataclass는 검증하는 계약이 아닙니다. `dataclass`는 런타임에 타입을 강제하지 않으니, 우리가 출력을 일정한 모양으로 맞춰 따르는 데이터 구조에 가깝습니다. 우리가 만든 값이라 검증할 일이 없고, 모양을 또렷이 해 둘 뿐입니다.
 
+### 3.2. 스키마는 입력만 기술한다 — 변환·가드는 도구가
+
+function calling 스키마에는 `parameters`(입력)와 설명만 있고, 반환 타입 필드가 없습니다. 모델은 무엇을 넣을지만 스키마로 알고, 반환은 우리가 돌려보낸 JSON을 읽을 뿐입니다. `AirQuality` 같은 타입은 우리 코드의 것이고, 모델이 보는 것은 `{"pm2_5": 24.9, "grade": "보통"}` 같은 JSON입니다.
+
+그래서 외부 API의 모양을 우리 dataclass 모양으로 바꾸는 일은 도구 함수가 손으로 합니다. 필드를 꺼내고, 없으면 가드하고, 파생값을 더해 조립합니다.
+
+```python
+cur = (await client.get(AIR, params=params)).json().get("current", {})  # API 모양
+pm = cur.get("pm2_5")                            # 1. 필드 꺼내기
+if pm is None:                                   # 2. 손으로 가드
+    raise ToolError("미세먼지 정보를 가져오지 못했습니다.")
+return AirQuality(pm2_5=pm, grade=_grade(pm))    # 3. 우리 타입으로 조립 (grade는 파생값)
+```
+
+dataclass는 검증을 하지 않으니 이 가드도 우리가 씁니다. API가 `pm2_5`에 엉뚱한 값을 줘도 dataclass는 그냥 담습니다.
+
+### 3.3. 응답을 검증하려면 — Pydantic
+
+이 손으로 하는 추출·가드를 자동화하려면, 외부 응답을 Pydantic 모델로 받습니다. section1의 `Review`가 LLM 출력을 검증했듯, 여기서는 API 응답을 검증합니다. 방향만 다를 뿐 같은 도구입니다.
+
+```python
+from pydantic import BaseModel
+
+class _Current(BaseModel):
+    pm2_5: float          # 숫자 문자열은 float로 맞추고, 못 맞추면 ValidationError
+
+class _AirResponse(BaseModel):
+    current: _Current
+
+async def get_air_quality(latitude, longitude) -> AirQuality:
+    raw = (await client.get(AIR, params=params)).json()
+    parsed = _AirResponse.model_validate(raw)    # 타입을 검증·강제
+    pm = parsed.current.pm2_5
+    return AirQuality(pm2_5=pm, grade=_grade(pm))
+```
+
+이러면 `.get()`과 None 가드 대신 Pydantic이 형을 검증·강제하고, 어긋나면 `ValidationError`로 알려줍니다. 이 단원은 단순함을 위해 dataclass와 손 가드를 택했습니다. 외부 응답을 덜 믿을수록 Pydantic 쪽이 값을 합니다.
+
 ## 4. 연계 — 앞 도구의 결과가 다음 입력
 
 도구들이 따로 노는 게 아니라 이어집니다. 날씨를 알려면 먼저 좌표가 필요하고, 주문 상세를 보려면 먼저 사용자와 주문을 찾아야 합니다. 앞 도구의 결과가 다음 도구의 입력이라 순서를 바꿀 수 없습니다.
