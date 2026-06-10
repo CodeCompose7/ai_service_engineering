@@ -40,15 +40,19 @@ flowchart LR
 
 ## 4. 예제 코드가 하는 일 및 결과
 
-[observe.py](../../../src/section4/lec07/observe.py)는 가짜 요청 다섯 개를 관찰을 끼워 처리합니다. 요청마다 검색·생성 스텝을 스팬으로 재고, 구조화 로그를 찍고, 끝나면 메트릭으로 모읍니다.
+[observe.py](../../../src/section4/lec07/observe.py)는 실제 RAG 요청 셋을 관찰을 끼워 처리합니다. 가짜 sleep이 아니라 S2 RAG의 진짜 검색과 LLM 생성을 스팬으로 잽니다. 요청마다 검색·생성·검증을 재고, 구조화 로그를 찍고, 끝나면 메트릭으로 모읍니다.
 
 ```mermaid
 flowchart TB
-  MAIN["main() — 5개 요청 시뮬"]
-  MAIN --> H["_handle<br/>요청 처리"]
-  H --> TR["Trace.span<br/>스텝 타이밍"]
-  TR --> LOG["log_event<br/>JSON 로그"]
-  MAIN --> MET["metrics<br/>_percentile·에러율"]
+  MAIN["main() — 실제 RAG 요청 셋"]
+  MAIN --> TR["traced_rag<br/>요청 처리"]
+  TR --> RET["span retrieve<br/>S2 검색 (빠름)"]
+  TR --> GEN["span generate<br/>acomplete (느림, LLM)"]
+  TR --> VAL["span validate<br/>출력 검증"]
+  RET --> LOG["log_event (JSON)"]
+  GEN --> LOG
+  VAL --> LOG
+  MAIN --> MET["metrics<br/>p50·p95·에러율"]
   classDef default rx:8,ry:8;
 ```
 
@@ -57,28 +61,32 @@ uv run python src/section4/lec07/observe.py
 ```
 
 ```text
-=== 구조화 로그 (요청마다 스텝을 JSON 한 줄로) ===
-{"request": "req-0", "step": "retrieve", "ms": 11.8, "ok": true}
-{"request": "req-0", "step": "generate", "ms": 21.4, "ok": true}
-{"request": "req-1", "step": "retrieve", "ms": 11.0, "ok": true}
-...
-{"request": "req-3", "step": "generate", "ms": 20.8, "ok": false}
-...
+=== 구조화 로그 (실제 RAG 요청의 스텝을 JSON 한 줄로) ===
+{"request": "req-0", "step": "retrieve", "ms": 41.8, "ok": true}
+{"request": "req-0", "step": "generate", "ms": 4340.4, "ok": true}
+{"request": "req-0", "step": "validate", "ms": 0.0, "ok": true}
+{"request": "req-1", "step": "retrieve", "ms": 54.1, "ok": true}
+{"request": "req-1", "step": "generate", "ms": 2643.3, "ok": true}
+{"request": "req-1", "step": "validate", "ms": 0.0, "ok": true}
+{"request": "req-2", "step": "retrieve", "ms": 69.2, "ok": true}
+{"request": "req-2", "step": "generate", "ms": 1119.8, "ok": true}
+{"request": "req-2", "step": "validate", "ms": 0.0, "ok": false}
 
-=== 메트릭 (5개 요청을 모아서) ===
-  requests: 5
-  spans: 10
-  p50_ms: 20.8
-  p95_ms: 23.3
-  error_rate: 0.1
+=== 메트릭 (요청들을 모아서) ===
+  requests: 3
+  spans: 9
+  p50_ms: 54.1
+  p95_ms: 4340.4
+  error_rate: 0.11
 ```
 
-읽어낼 점입니다. 시간(ms)은 실제로 재므로 실행마다 조금씩 다릅니다.
+읽어낼 점입니다. 시간(ms)은 실제로 재므로 실행마다 다릅니다.
 
 - 로그가 JSON입니다. request·step·ms·ok 필드가 있어, "generate 스텝만", "ok=false만"처럼 기계가 골라냅니다. `print`로는 못 하는 일입니다.
-- 트레이싱이 어느 요청의 어느 스텝이 실패했는지 짚습니다. req-3의 generate가 `ok: false`로 남았습니다. 한 요청을 따라가며 디버그할 수 있습니다.
-- 메트릭이 전체를 모읍니다. p95 지연과 에러율 0.1이 한눈에 보입니다. 요청 하나하나로는 안 보이는 추세입니다.
-- `self.trace`(앞 단원들)가 한 요청의 관찰이었다면, 여기서는 수천 요청의 운영을 봅니다. 같은 트레이스 개념을 구조화 로그와 메트릭으로 키운 것입니다.
+- 스텝마다 실제 시간이 다릅니다. 검색은 50ms 안팎으로 빠르고, 생성은 LLM 호출이라 1~4초로 느립니다. 어느 스텝이 병목인지 한눈에 보입니다.
+- p50는 54ms, p95는 4340ms로 크게 벌어집니다. 중앙값은 빠른 검색 스팬이고 95분위는 가장 느린 생성 스팬이기 때문입니다. LLM 호출이 지연을 지배한다는 게 메트릭으로 드러납니다.
+- req-2의 validate가 `ok: false`입니다. 출력 검증 실패가 스팬에 남고 에러율 0.11로 집계됩니다. 실패해도 요청은 죽지 않습니다. lec03·05에서 본 "기록하고 이어간다"와 같은 결입니다.
+- `self.trace`(앞 단원들)가 한 요청의 관찰이었다면, 여기서는 실제 RAG 요청들의 운영을 봅니다. 같은 트레이스 개념을 구조화 로그와 메트릭으로 키운 것입니다.
 
 실전에서는 OpenTelemetry로 트레이싱하고, 구조화 로깅 라이브러리로 로그를 남기고, Grafana·Datadog 같은 도구로 메트릭을 모니터링합니다. LiteLLM도 콜백으로 관찰 도구에 붙습니다. 직접 짜 보면 그 도구들이 무엇을 하는지 또렷해집니다.
 

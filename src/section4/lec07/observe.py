@@ -9,16 +9,21 @@
 - 트레이싱: 한 요청의 스텝을 시간·성패와 함께 스팬으로 기록한다. 어디서 느렸는지 보인다.
 - 메트릭: 여러 요청의 스팬을 모아 추세를 본다. p50·p95 지연, 에러율 같은 것.
 
-개별 로그는 한 사건을, 메트릭은 전체 건강을 본다. 운영은 둘 다 본다.
+가짜 sleep이 아니라 실제 AI 요청에 끼운다. S2 RAG의 검색·생성을 스팬으로 재므로, 검색은 빠르고
+생성(LLM)은 느린 진짜 지연이 메트릭에 드러난다.
 
 실행:
     uv run python src/section4/lec07/observe.py
 """
 
+import asyncio
 import json
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
+
+from section2.lec06.mini_rag import build_messages, expand_with_neighbors, open_index, retrieve
+from section3.lec02.async_llm import acomplete
 
 
 def log_event(**fields) -> None:
@@ -81,26 +86,51 @@ def metrics(traces: list[Trace]) -> dict:
     }
 
 
-def _handle(request_id: str, fail: bool = False) -> Trace:
-    """관찰을 끼운 가짜 요청 처리. 검색·생성 스텝을 스팬으로 잰다."""
-    trace = Trace(request_id)
+_COLLECTION = None
+
+
+def _collection():
+    global _COLLECTION
+    if _COLLECTION is None:
+        _COLLECTION = open_index()
+    return _COLLECTION
+
+
+async def traced_rag(trace: Trace, question: str, must_contain: str | None = None) -> str:
+    """관찰을 끼운 실제 RAG 요청. 검색·생성·검증을 각각 스팬으로 잰다."""
     with trace.span("retrieve"):
-        time.sleep(0.01)
+        contexts = expand_with_neighbors(_collection(), retrieve(_collection(), question, 3), 1)
+    with trace.span("generate"):
+        answer = (await acomplete(build_messages(question, contexts))).strip()
     try:
-        with trace.span("generate"):
-            time.sleep(0.02)
-            if fail:
-                raise RuntimeError("생성 실패")
+        with trace.span("validate"):
+            if must_contain and must_contain not in answer:
+                raise RuntimeError("출력 검증 실패")
     except RuntimeError:
-        pass  # 실패는 스팬에 ok=False로 남고, 처리는 이어간다
-    return trace
+        pass  # 검증 실패는 스팬에 ok=False로 남고, 처리는 이어간다
+    return answer
+
+
+CASES = [
+    ("req-0", "RAG란 무엇인가요?", None),
+    ("req-1", "Retro 방식의 단점은 무엇인가요?", None),
+    ("req-2", "희소 벡터의 특징은 무엇인가요?", "존재하지않는단어"),  # 검증이 일부러 실패
+]
 
 
 def main() -> int:
-    print("=== 구조화 로그 (요청마다 스텝을 JSON 한 줄로) ===")
-    traces = [_handle(f"req-{i}", fail=(i == 3)) for i in range(5)]
+    from dotenv import load_dotenv
 
-    print("\n=== 메트릭 (5개 요청을 모아서) ===")
+    load_dotenv()
+    retrieve(_collection(), "워밍업", 1)  # 임베더 콜드 로드를 측정 밖으로 뺀다
+    print("=== 구조화 로그 (실제 RAG 요청의 스텝을 JSON 한 줄로) ===")
+    traces = []
+    for request_id, question, must_contain in CASES:
+        trace = Trace(request_id)
+        asyncio.run(traced_rag(trace, question, must_contain))
+        traces.append(trace)
+
+    print("\n=== 메트릭 (요청들을 모아서) ===")
     for key, value in metrics(traces).items():
         print(f"  {key}: {value}")
     return 0
