@@ -140,7 +140,7 @@ flowchart TB
   ASM --> CO["compact_old<br/>truncate·extractive·summarize"]
   ASM --> BU["_build_user<br/>+ _order_edges (순서)"]
   ASM --> TOK["count_tokens<br/>litellm"]
-  CO --> ALM["lec02 acomplete (요약 시)"]
+  CO --> ALM["S3 acomplete (요약 시)"]
   classDef default rx:8,ry:8;
 ```
 

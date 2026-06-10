@@ -6,7 +6,8 @@
 - 의견이 모이면(만장일치) 그 판정은 믿을 만하다.
 - 의견이 갈리면 그 답은 애매하다는 신호다. 사람이 들여다볼 후보다.
 
-panel_judge는 EvalHarness의 judge_fn에 그대로 꽂힌다. 저지를 주입식으로 둔 설계가 여기서 빛난다.
+panel_judge는 한 저지를 받던 자리에 그대로 끼우는 판정 함수다. 채점기를 주입식으로 두면
+한 저지든 패널이든 바꿔 끼운다.
 
 실행:
     uv run python src/section4/lec06/panel.py
@@ -48,7 +49,7 @@ async def panel_verdict(question: str, answer: str, criteria: str, judges=JUDGES
 
 
 async def panel_judge(question: str, answer: str, criteria: str) -> bool:
-    """EvalHarness에 꽂는 judge_fn. 패널 다수결을 bool로 돌려준다."""
+    """한 저지 자리에 그대로 끼우는 판정 함수. 패널 다수결을 bool로 돌려준다."""
     return (await panel_verdict(question, answer, criteria))["passed"]
 
 
