@@ -43,18 +43,25 @@ class ReliableAgent:
         self.trace: list[str] = []
 
     async def ask(self, messages: list[dict]) -> dict:
+        """오케스트레이터: 예산 게이트 → 폴백 체인."""
         self.trace = []
+        if not self._charge_budget(messages):
+            return {"reply": "예산을 초과해 요청을 거부합니다.", "trace": self.trace}
+        return await self._try_chain(messages)
 
-        # 1. 비용 — 예산을 넘으면 모델을 부르지도 않는다
+    def _charge_budget(self, messages) -> bool:
+        """토큰을 추정해 예산을 차감한다. 넘으면 모델을 부르지 않으려 False를 돌려준다."""
         tokens = _count(messages)
         try:
             self.budget.charge(tokens)
         except BudgetError as exc:
             self.trace.append(f"예산 초과 → 거부 ({exc})")
-            return {"reply": "예산을 초과해 요청을 거부합니다.", "trace": self.trace}
+            return False
         self.trace.append(f"예산 {tokens}토큰 차감 (남은 {self.budget.remaining()})")
+        return True
 
-        # 2. 폴백 체인 — 각 후보는 재시도 + 타임아웃으로 감싼다
+    async def _try_chain(self, messages) -> dict:
+        """폴백 체인을 돌며 첫 성공을 돌려준다. 모두 실패하면 거부한다."""
         for name, fn in self.models:
             try:
                 result = await self._call_one(name, fn, messages)
@@ -62,7 +69,6 @@ class ReliableAgent:
                 return {"reply": result, "trace": self.trace}
             except Exception as exc:  # noqa: BLE001 - 어떤 실패든 다음 후보로
                 self.trace.append(f"{name} 실패 → 폴백 ({exc})")
-
         self.trace.append("모든 후보 실패")
         return {"reply": "일시적으로 응답할 수 없습니다.", "trace": self.trace}
 
