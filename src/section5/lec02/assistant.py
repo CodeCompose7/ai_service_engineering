@@ -11,6 +11,7 @@
 handle 하나가 이 파이프라인이다. app.py의 /chat 핸들러가 이걸 부른다.
 """
 
+import asyncio
 from dataclasses import dataclass
 
 import litellm
@@ -54,11 +55,22 @@ class Store:
 
 
 async def _input_blocked(message: str, settings: Settings) -> str | None:
-    """입력 가드. 막을 이유가 있으면 사유를, 없으면 None을 돌려준다."""
-    if settings.guard_injection and await detect_injection(message):
-        return "프롬프트 주입이 의심됩니다"
-    if settings.moderate and await llm_moderate(message):
-        return "부적절한 표현이 감지되었습니다"
+    """입력 가드. 막을 이유가 있으면 사유를, 없으면 None을 돌려준다.
+
+    주입·검열은 각각 LLM 호출이라 순차로 하면 느리다. 함께 돌려(gather) 가드 지연을 절반으로
+    줄인다. 첫 토큰 전에 끝나야 하므로 빠를수록 좋다.
+    """
+    checks = []
+    if settings.guard_injection:
+        checks.append(("프롬프트 주입이 의심됩니다", detect_injection(message)))
+    if settings.moderate:
+        checks.append(("부적절한 표현이 감지되었습니다", llm_moderate(message)))
+    if not checks:
+        return None
+    flags = await asyncio.gather(*(coro for _, coro in checks))
+    for (reason, _), flagged in zip(checks, flags, strict=True):
+        if flagged:
+            return reason
     return None
 
 
@@ -100,9 +112,19 @@ async def handle(
 
 
 async def _generate_stream(messages: list[dict]):
-    """생성을 토큰 단위로 흘린다. lec01에서 본 LiteLLM stream=True 그대로다."""
+    """생성을 토큰 단위로 흘린다. lec01에서 본 LiteLLM stream=True 그대로다.
+
+    gemini-2.5-flash는 기본적으로 답하기 전에 '생각'을 해서 첫 토큰이 한참 늦다. 채팅은
+    응답성이 중요하니 thinking을 꺼(budget 0) 첫 토큰을 앞당긴다. 스트리밍이 체감되려면
+    첫 토큰이 빨라야 한다.
+    """
     model, kwargs = resolve_model()
-    stream = await litellm.acompletion(model=model, messages=messages, stream=True, **kwargs)
+    extra = {}
+    if model.startswith("gemini"):
+        extra["thinking"] = {"type": "enabled", "budget_tokens": 0}
+    stream = await litellm.acompletion(
+        model=model, messages=messages, stream=True, **kwargs, **extra
+    )
     async for chunk in stream:
         delta = chunk.choices[0].delta.content
         if delta:
