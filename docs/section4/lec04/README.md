@@ -91,6 +91,21 @@ flowchart TD
 
 입력을 먼저 스크리닝하고, 도구로 리뷰를 가져온 뒤, 리뷰마다 주입을 검사해 오염된 것은 격리하고, 남은 것만 데이터로 감싸 요약합니다.
 
+코드 구조는 오케스트레이터 하나와 스텝 메서드들입니다. `summarize_reviews`가 흐름만 잡고, 각 스텝을 따로 떼어 둡니다. 탐지·요약은 injection.py의 부품을 가져다 씁니다.
+
+```mermaid
+flowchart TB
+  SR["summarize_reviews<br/>오케스트레이터"]
+  SR --> IO["_input_ok<br/>입력 스크리닝"]
+  SR --> FE["_fetch<br/>fetch_reviews 도구"]
+  SR --> QU["_quarantine<br/>오염 격리"]
+  SR --> SU["_summarize<br/>데이터로 요약"]
+  IO --> DI["detect_injection<br/>(injection.py)"]
+  QU --> DI
+  SU --> SS["safe_summarize<br/>(injection.py)"]
+  classDef default rx:8,ry:8;
+```
+
 ```text
 === 정상 요청 (도구 결과 오염을 격리하고 요약) ===
 요청: 이 제품 리뷰들을 요약해줘
