@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>통합 어시스턴트</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto;
+           padding: 16px; }
+    header { display: flex; align-items: center; justify-content: space-between;
+             border-bottom: 1px solid #ccc; padding-bottom: 8px; }
+    header a { font-size: 14px; padding: 6px 12px; border: 1px solid #888;
+               border-radius: 8px; text-decoration: none; }
+    #messages { margin: 16px 0; min-height: 320px; display: flex;
+                flex-direction: column; gap: 8px; }
+    .msg { padding: 8px 12px; border-radius: 12px; max-width: 80%; white-space: pre-wrap; }
+    .user { align-self: flex-end; background: #2f6fed; color: #fff; }
+    .bot { align-self: flex-start; background: #eceef2; color: #111; }
+    .blocked { align-self: flex-start; background: #fde2e2; color: #8a1f1f; }
+    form { display: flex; gap: 8px; }
+    input { flex: 1; padding: 10px; border: 1px solid #888; border-radius: 8px; }
+    button { padding: 10px 16px; border: none; border-radius: 8px;
+             background: #2f6fed; color: #fff; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>통합 어시스턴트</h1>
+    <a href="/admin">관리자 페이지</a>
+  </header>
+
+  <div id="messages"></div>
+
+  <form id="chat-form">
+    <input id="msg" placeholder="질문을 입력하세요" autocomplete="off" />
+    <button type="submit">보내기</button>
+  </form>
+
+  <script>
+    const messages = document.getElementById("messages");
+
+    function add(role, text) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("msg");
+      const text = input.value.trim();
+      if (!text) return;
+      add("user", text);
+      input.value = "";
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, user: "web" }),
+        });
+        const data = await res.json();
+        if (data.blocked) add("blocked", "차단됨: " + data.reason);
+        else add("bot", data.answer);
+      } catch (err) {
+        add("blocked", "요청 실패: " + err);
+      }
+    });
+  </script>
+</body>
+</html>
