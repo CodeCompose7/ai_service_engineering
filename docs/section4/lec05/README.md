@@ -155,7 +155,83 @@ uv run python src/section4/lec05/reliable_agent.py
 - 여기 예산은 우리가 센 토큰 추정입니다. 실전에서는 응답의 실제 사용량이나 누적 청구액으로도 재고, 요청별·사용자별·일별로 한도를 둡니다.
 - 이것이 lec02~04의 하네스가 모델을 부르던 그 자리를, 비용·실패·지연에 견디게 감싼 모습입니다.
 
-## 8. 예제 코드가 하는 일 및 결과
+## 8. 여러 하네스에 공통 관심사 더하기
+
+하네스를 여럿 만들면(비속어 감지·요약·번역 등) 예산 같은 공통 관심사를 모두에 더하고 싶어집니다. 클래스마다 찾아가 박을 수는 없습니다. 세 방법을 견줍니다.
+
+상속으로 부모에 예산을 두는 방법입니다.
+
+```python
+class BaseHarness:
+    def __init__(self, budget):
+        self.budget = budget
+    async def _call(self, messages):
+        self.budget.charge(_cost(messages))
+        return await acomplete(messages)
+
+class SummarizeHarness(BaseHarness):   # _call을 물려받아 쓴다
+    ...
+```
+
+각 하네스를 감싸는 래퍼를 따로 두는 방법입니다.
+
+```python
+class BudgetedSummarize:               # SummarizeHarness를 감싼다
+    def __init__(self, inner, budget):
+        self.inner, self.budget = inner, budget
+    async def run(self, text):         # run이라는 시그니처를 알아야 한다
+        self.budget.charge(...)
+        return await self.inner.run(text)
+```
+
+호출을 감싸 주입하는 방법입니다.
+
+```python
+def budgeted(call, budget):            # 호출 한 곳을 감싼다
+    async def wrapped(messages):
+        budget.charge(_cost(messages))
+        return await call(messages)
+    return wrapped
+
+llm = budgeted(acomplete, budget)      # 한 번만
+summarize = SummarizeHarness(llm)      # 같은 llm
+translate = TranslateHarness(llm)      # 같은 llm — 예산을 공유
+```
+
+| 방법 | 문제 |
+| --- | --- |
+| 상속 (BaseHarness) | 단일 계층이라 예산·로깅·트레이싱을 같이 못 섞고 강결합입니다. 상속보다 합성입니다 |
+| 각 하네스 클래스를 래핑 | 하네스마다 인터페이스(run·handle·summarize_reviews)가 달라 래퍼를 일반화 못 합니다. 게다가 예산은 호출의 관심사라 층이 틀립니다 |
+| 호출 주입 (DI) | 한 곳만 두르고 모두 공유합니다. 관심사가 맞는 층에 붙습니다 |
+
+핵심은 예산이 하네스가 아니라 호출의 관심사라는 점입니다. 모두가 지나는 호출 한 곳을 감싸고 그것을 주입하면, 하나만 감싸도 모든 하네스가 공유합니다. 하네스의 메서드 이름이 `run`이든 `handle`이든 상관없습니다. 다 같은 `llm`을 받아 부를 뿐입니다.
+
+```mermaid
+flowchart LR
+  S["SummarizeHarness"] --> L["budgeted(call)<br/>예산을 호출 한 곳에"]
+  T["TranslateHarness"] --> L
+  L --> M["모델"]
+  classDef default rx:8,ry:8;
+```
+
+[compose.py](../../../src/section4/lec05/compose.py)가 이 DI 방식을 보입니다.
+
+```bash
+uv run python src/section4/lec05/compose.py
+```
+
+```text
+=== 두 하네스가 한 예산을 공유 (한도 40) ===
+  SummarizeHarness: 성공 → 남은 예산 31
+  TranslateHarness: 성공 → 남은 예산 23
+  SummarizeHarness: 성공 → 남은 예산 14
+  TranslateHarness: 성공 → 남은 예산 7
+  SummarizeHarness: 거부 (예산 초과: 33 + 10 > 40)
+```
+
+두 하네스가 같은 예산을 공유합니다. 번갈아 돌리면 한 예산이 둘에 걸쳐 줄고, 다 떨어지면 다음 호출이 거부됩니다. 어느 하네스 클래스도 예산을 모릅니다. 예산은 주입된 호출에만 있습니다. 실전에서는 이 공유 호출 층이 LiteLLM Router이고, budgets·fallbacks·retries를 거기 설정하면 모든 하네스가 받습니다.
+
+## 9. 예제 코드가 하는 일 및 결과
 
 [reliability.py](../../../src/section4/lec05/reliability.py)는 네 패턴을 가짜 호출로 결정적으로 보입니다. 레이트리밋을 일부러 일으킬 수 없으니, 모사한 실패로 메커니즘을 드러냅니다.
 
@@ -199,10 +275,11 @@ uv run python src/section4/lec05/reliability.py
 - 폴백은 다른 후보로 넘어갑니다. 모델 A가 과부하여도 모델 B가 받아 서비스가 죽지 않습니다.
 - 타임아웃은 무한정 기다리지 않게 끊습니다. 느린 호출 하나가 전체를 잡아먹지 않게 합니다.
 
-## 9. 정리
+## 10. 정리
 
 - 운영 신뢰성은 비용·한계·실패·지연을 견디는 층입니다. 모델 호출 둘레에 두릅니다.
 - 비용은 토큰 예산으로 막고, 일시적 실패는 지수 백오프 재시도로 넘기고, 모델이 죽으면 폴백 체인으로 잇고, 느리면 타임아웃으로 끊습니다.
 - 프롬프트 캐싱은 안정적인 앞부분을 재사용해 비용·지연을 줄입니다. 안정적인 것을 앞에 두는 순서가 관건입니다.
 - 손으로 짜 본 이 패턴들을 실전에서는 LiteLLM이 `num_retries`·`fallbacks`·`timeout`으로 내장 지원합니다.
 - reliable_agent.py가 이 패턴들을 하네스로 엮습니다. 예산을 모델 앞에 세우고, 폴백 체인의 각 후보를 재시도·타임아웃으로 감쌉니다. 운영 신뢰성은 모델 호출을 감싸는 하네스의 운영 층입니다.
+- 여러 하네스에 공통 관심사를 더할 때는 클래스를 손대거나 상속하지 않고, 호출 한 곳을 감싸 주입(DI)합니다. 관심사는 그게 속한 층에 붙입니다.
