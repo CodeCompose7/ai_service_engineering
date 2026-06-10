@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>관리자 — 통합 어시스턴트</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto;
+           padding: 16px; }
+    header { display: flex; align-items: center; justify-content: space-between;
+             border-bottom: 1px solid #ccc; padding-bottom: 8px; }
+    header a { font-size: 14px; padding: 6px 12px; border: 1px solid #888;
+               border-radius: 8px; text-decoration: none; }
+    section { margin: 20px 0; }
+    h2 { font-size: 16px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .card { border: 1px solid #ccc; border-radius: 8px; padding: 12px; text-align: center; }
+    .card .v { font-size: 22px; font-weight: 600; }
+    .card .k { font-size: 12px; color: #777; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; font-size: 14px; }
+    .alert { background: #fde2e2; color: #8a1f1f; padding: 8px 12px; border-radius: 8px;
+             margin: 4px 0; }
+    .ok { color: #1f7a3d; }
+    label { display: block; margin: 6px 0; }
+    button { padding: 8px 14px; border: none; border-radius: 8px; background: #2f6fed;
+             color: #fff; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>관리자 페이지</h1>
+    <a href="/">채팅으로</a>
+  </header>
+
+  <section>
+    <h2>관찰 — 전체 메트릭</h2>
+    <div class="metrics" id="overall"></div>
+  </section>
+
+  <section>
+    <h2>SLO 알림</h2>
+    <div id="alerts"></div>
+  </section>
+
+  <section>
+    <h2>사용자별</h2>
+    <table id="by-user"><thead>
+      <tr><th>사용자</th><th>요청</th><th>p95(ms)</th><th>에러율</th></tr>
+    </thead><tbody></tbody></table>
+  </section>
+
+  <section>
+    <h2>설정 — 하네스 토글</h2>
+    <form id="settings">
+      <label><input type="checkbox" name="guard_injection" /> 주입 방어</label>
+      <label><input type="checkbox" name="moderate" /> 욕설 검열</label>
+      <label><input type="checkbox" name="redact" /> 출력 PII 가림</label>
+      <label><input type="checkbox" name="rag" /> RAG 검색</label>
+    </form>
+    <button id="refresh">새로고침</button>
+  </section>
+
+  <script>
+    async function load() {
+      const res = await fetch("/api/metrics");
+      const data = await res.json();
+      const m = data.overall;
+
+      const overall = document.getElementById("overall");
+      overall.innerHTML = "";
+      const cards = [
+        ["요청", m.requests], ["스팬", m.spans], ["p50(ms)", m.p50_ms],
+        ["p95(ms)", m.p95_ms], ["에러율", m.error_rate],
+      ];
+      for (const [k, v] of cards) {
+        const c = document.createElement("div");
+        c.className = "card";
+        c.innerHTML = `<div class="v">${v}</div><div class="k">${k}</div>`;
+        overall.appendChild(c);
+      }
+
+      const alerts = document.getElementById("alerts");
+      if (data.alerts.length === 0) {
+        alerts.innerHTML = '<div class="ok">경보 없음. 정상입니다.</div>';
+      } else {
+        alerts.innerHTML = data.alerts.map((a) => `<div class="alert">${a}</div>`).join("");
+      }
+
+      const tbody = document.querySelector("#by-user tbody");
+      tbody.innerHTML = "";
+      for (const [user, um] of Object.entries(data.by_user)) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${user}</td><td>${um.requests}</td>` +
+          `<td>${um.p95_ms}</td><td>${um.error_rate}</td>`;
+        tbody.appendChild(tr);
+      }
+
+      for (const box of document.querySelectorAll('#settings input')) {
+        box.checked = data.settings[box.name];
+      }
+    }
+
+    document.querySelectorAll("#settings input").forEach((box) => {
+      box.addEventListener("change", async () => {
+        await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [box.name]: box.checked }),
+        });
+      });
+    });
+
+    document.getElementById("refresh").addEventListener("click", load);
+    load();
+  </script>
+</body>
+</html>
