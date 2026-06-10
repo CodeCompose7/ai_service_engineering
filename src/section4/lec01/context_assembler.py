@@ -44,7 +44,7 @@ def _build_user(chunks: list[str], memory: str, recent: list[tuple], question: s
     talk = "\n".join(f"{r}: {c}" for r, c in recent) or "(없음)"
     return (
         f"[근거]\n{blocks}\n\n"
-        f"[이전 대화 요약]\n{memory or '(없음)'}\n\n"
+        f"[이전 대화]\n{memory or '(없음)'}\n\n"
         f"[최근 대화]\n{talk}\n\n"
         f"[질문] {question}"
     )
@@ -53,9 +53,14 @@ def _build_user(chunks: list[str], memory: str, recent: list[tuple], question: s
 async def _compact(old: list[tuple]) -> str:
     """오래된 대화를 한두 문장으로 압축한다."""
     convo = "\n".join(f"{r}: {c}" for r, c in old)
-    return (await acomplete(
-        [{"role": "system", "content": COMPACT_SYSTEM}, {"role": "user", "content": convo}]
-    )).strip()
+    return (
+        await acomplete(
+            [
+                {"role": "system", "content": COMPACT_SYSTEM},
+                {"role": "user", "content": convo},
+            ]
+        )
+    ).strip()
 
 
 async def assemble(
@@ -113,15 +118,19 @@ HISTORY = [
 QUESTION = "팀 기능을 쓰려면 나는 어떻게 해야 해?"
 
 
-def _show(label: str, result: dict) -> None:
-    print(f"=== {label} (예산 {result['budget']} 토큰) ===")
+async def _demo(label: str, budget: int) -> None:
+    """한 예산으로 조립해, 실제 전송되는 컨텍스트와 그 답을 함께 보인다."""
+    result = await assemble(QUESTION, HISTORY, KB, budget)
+    print(f"=== {label} (예산 {budget} 토큰) ===")
     print(
         f"  조립: {result['tokens']}토큰 / 청크 {result['chunks_kept']}개 / "
         f"오래된 대화 {result['mode']}"
     )
-    if result["summary"]:
-        print(f"  압축 요약: {result['summary']}")
-    print()
+    print("  --- 실제 전송 컨텍스트 ---")
+    for line in result["messages"][1]["content"].splitlines():
+        print(f"  {line}")
+    answer = await acomplete(result["messages"])
+    print(f"  --- 답 ---\n  {answer.strip()}\n")
 
 
 def main() -> int:
@@ -129,13 +138,8 @@ def main() -> int:
 
     load_dotenv()
     print(f"질문: {QUESTION}\n")
-    for label, budget in [("넉넉한 예산", 400), ("빠듯한 예산", 160)]:
-        result = asyncio.run(assemble(QUESTION, HISTORY, KB, budget))
-        _show(label, result)
-    # 빠듯한 예산으로 조립한 컨텍스트로 실제 답을 만들어 본다.
-    tight = asyncio.run(assemble(QUESTION, HISTORY, KB, 160))
-    answer = asyncio.run(acomplete(tight["messages"]))
-    print(f"빠듯한 컨텍스트로 만든 답:\n{answer}")
+    asyncio.run(_demo("넉넉한 예산", 400))
+    asyncio.run(_demo("빠듯한 예산", 160))
     return 0
 
 
