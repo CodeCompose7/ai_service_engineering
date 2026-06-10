@@ -41,10 +41,12 @@ class Span:
 
 
 class Trace:
-    """한 요청의 스텝들을 시간·성패와 함께 기록한다."""
+    """한 요청의 스텝들을 시간·성패와 함께 기록한다. 누구의 어떤 요청인지도 함께 남긴다."""
 
-    def __init__(self, request_id: str):
+    def __init__(self, request_id: str, user: str = "anonymous", session: str = "-"):
         self.request_id = request_id
+        self.user = user
+        self.session = session
         self.spans: list[Span] = []
 
     @contextmanager
@@ -60,7 +62,14 @@ class Trace:
         finally:
             ms = (time.perf_counter() - start) * 1000
             self.spans.append(Span(name, ms, ok))
-            log_event(request=self.request_id, step=name, ms=round(ms, 1), ok=ok)
+            log_event(
+                user=self.user,
+                session=self.session,
+                request=self.request_id,
+                step=name,
+                ms=round(ms, 1),
+                ok=ok,
+            )
 
 
 def _percentile(values: list[float], p: int) -> float:
@@ -86,6 +95,14 @@ def metrics(traces: list[Trace]) -> dict:
     }
 
 
+def metrics_by_user(traces: list[Trace]) -> dict:
+    """사용자별로 묶어 메트릭을 낸다. 누가 느리고 누가 실패하는지 갈라 본다."""
+    by_user: dict[str, list[Trace]] = {}
+    for trace in traces:
+        by_user.setdefault(trace.user, []).append(trace)
+    return {user: metrics(ts) for user, ts in sorted(by_user.items())}
+
+
 _COLLECTION = None
 
 
@@ -96,10 +113,18 @@ def _collection():
     return _COLLECTION
 
 
-async def traced_rag(trace: Trace, question: str, must_contain: str | None = None) -> str:
+async def traced_rag(
+    trace: Trace,
+    question: str,
+    must_contain: str | None = None,
+) -> str:
     """관찰을 끼운 실제 RAG 요청. 검색·생성·검증을 각각 스팬으로 잰다."""
     with trace.span("retrieve"):
-        contexts = expand_with_neighbors(_collection(), retrieve(_collection(), question, 3), 1)
+        contexts = expand_with_neighbors(
+            _collection(),
+            retrieve(_collection(), question, 3),
+            1,
+        )
     with trace.span("generate"):
         answer = (await acomplete(build_messages(question, contexts))).strip()
     try:
@@ -111,10 +136,11 @@ async def traced_rag(trace: Trace, question: str, must_contain: str | None = Non
     return answer
 
 
+# 누구의(user)·어느 세션(session)·어떤 요청(request)인지를 함께 남긴다.
 CASES = [
-    ("req-0", "RAG란 무엇인가요?", None),
-    ("req-1", "Retro 방식의 단점은 무엇인가요?", None),
-    ("req-2", "희소 벡터의 특징은 무엇인가요?", "존재하지않는단어"),  # 검증이 일부러 실패
+    ("req-0", "alice", "sess-a", "RAG란 무엇인가요?", None),
+    ("req-1", "alice", "sess-a", "Retro 방식의 단점은 무엇인가요?", None),
+    ("req-2", "bob", "sess-b", "희소 벡터의 특징은 무엇인가요?", "존재하지않는단어"),
 ]
 
 
@@ -123,16 +149,23 @@ def main() -> int:
 
     load_dotenv()
     retrieve(_collection(), "워밍업", 1)  # 임베더 콜드 로드를 측정 밖으로 뺀다
-    print("=== 구조화 로그 (실제 RAG 요청의 스텝을 JSON 한 줄로) ===")
+    print("=== 구조화 로그 (누구의 어떤 요청인지까지 JSON 한 줄로) ===")
     traces = []
-    for request_id, question, must_contain in CASES:
-        trace = Trace(request_id)
+    for request_id, user, session, question, must_contain in CASES:
+        trace = Trace(request_id, user=user, session=session)
         asyncio.run(traced_rag(trace, question, must_contain))
         traces.append(trace)
 
-    print("\n=== 메트릭 (요청들을 모아서) ===")
+    print("\n=== 메트릭 (전체) ===")
     for key, value in metrics(traces).items():
         print(f"  {key}: {value}")
+
+    print("\n=== 사용자별 메트릭 ===")
+    for user, user_metrics in metrics_by_user(traces).items():
+        print(
+            f"  {user}: 요청 {user_metrics['requests']}, "
+            f"p95 {user_metrics['p95_ms']}ms, 에러율 {user_metrics['error_rate']}"
+        )
     return 0
 
 

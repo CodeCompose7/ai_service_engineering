@@ -40,7 +40,7 @@ flowchart LR
 
 ## 4. 예제 코드가 하는 일 및 결과
 
-[observe.py](../../../src/section4/lec07/observe.py)는 실제 RAG 요청 셋을 관찰을 끼워 처리합니다. 가짜 sleep이 아니라 S2 RAG의 진짜 검색과 LLM 생성을 스팬으로 잽니다. 요청마다 검색·생성·검증을 재고, 구조화 로그를 찍고, 끝나면 메트릭으로 모읍니다.
+[observe.py](../../../src/section4/lec07/observe.py)는 실제 RAG 요청 셋을 관찰을 끼워 처리합니다. 가짜 sleep이 아니라 S2 RAG의 진짜 검색과 LLM 생성을 스팬으로 잽니다. 요청마다 검색·생성·검증을 재고, 누구의 어떤 요청인지(user·session·request)와 함께 구조화 로그를 찍고, 끝나면 전체 메트릭과 사용자별 메트릭으로 모읍니다.
 
 ```mermaid
 flowchart TB
@@ -61,39 +61,58 @@ uv run python src/section4/lec07/observe.py
 ```
 
 ```text
-=== 구조화 로그 (실제 RAG 요청의 스텝을 JSON 한 줄로) ===
-{"request": "req-0", "step": "retrieve", "ms": 41.8, "ok": true}
-{"request": "req-0", "step": "generate", "ms": 4340.4, "ok": true}
-{"request": "req-0", "step": "validate", "ms": 0.0, "ok": true}
-{"request": "req-1", "step": "retrieve", "ms": 54.1, "ok": true}
-{"request": "req-1", "step": "generate", "ms": 2643.3, "ok": true}
-{"request": "req-1", "step": "validate", "ms": 0.0, "ok": true}
-{"request": "req-2", "step": "retrieve", "ms": 69.2, "ok": true}
-{"request": "req-2", "step": "generate", "ms": 1119.8, "ok": true}
-{"request": "req-2", "step": "validate", "ms": 0.0, "ok": false}
+=== 구조화 로그 (누구의 어떤 요청인지까지 JSON 한 줄로) ===
+{"user": "alice", "session": "sess-a", "request": "req-0", "step": "retrieve", "ms": 68.1, "ok": true}
+{"user": "alice", "session": "sess-a", "request": "req-0", "step": "generate", "ms": 4292.5, "ok": true}
+{"user": "alice", "session": "sess-a", "request": "req-0", "step": "validate", "ms": 0.0, "ok": true}
+...
+{"user": "bob", "session": "sess-b", "request": "req-2", "step": "generate", "ms": 1126.3, "ok": true}
+{"user": "bob", "session": "sess-b", "request": "req-2", "step": "validate", "ms": 0.0, "ok": false}
 
-=== 메트릭 (요청들을 모아서) ===
+=== 메트릭 (전체) ===
   requests: 3
   spans: 9
-  p50_ms: 54.1
-  p95_ms: 4340.4
+  p50_ms: 68.1
+  p95_ms: 4292.5
   error_rate: 0.11
+
+=== 사용자별 메트릭 ===
+  alice: 요청 2, p95 4292.5ms, 에러율 0.0
+  bob: 요청 1, p95 1126.3ms, 에러율 0.33
 ```
 
 읽어낼 점입니다. 시간(ms)은 실제로 재므로 실행마다 다릅니다.
 
-- 로그가 JSON입니다. request·step·ms·ok 필드가 있어, "generate 스텝만", "ok=false만"처럼 기계가 골라냅니다. `print`로는 못 하는 일입니다.
-- 스텝마다 실제 시간이 다릅니다. 검색은 50ms 안팎으로 빠르고, 생성은 LLM 호출이라 1~4초로 느립니다. 어느 스텝이 병목인지 한눈에 보입니다.
-- p50는 54ms, p95는 4340ms로 크게 벌어집니다. 중앙값은 빠른 검색 스팬이고 95분위는 가장 느린 생성 스팬이기 때문입니다. LLM 호출이 지연을 지배한다는 게 메트릭으로 드러납니다.
-- req-2의 validate가 `ok: false`입니다. 출력 검증 실패가 스팬에 남고 에러율 0.11로 집계됩니다. 실패해도 요청은 죽지 않습니다. lec03·05에서 본 "기록하고 이어간다"와 같은 결입니다.
-- `self.trace`(앞 단원들)가 한 요청의 관찰이었다면, 여기서는 실제 RAG 요청들의 운영을 봅니다. 같은 트레이스 개념을 구조화 로그와 메트릭으로 키운 것입니다.
+- 로그가 JSON입니다. user·request·step·ms·ok 필드가 있어, "generate 스텝만", "bob의 요청만", "ok=false만"처럼 기계가 골라냅니다. `print`로는 못 하는 일입니다.
+- 스텝마다 실제 시간이 다릅니다. 검색은 50~70ms로 빠르고, 생성은 LLM 호출이라 1~4초로 느립니다. p50는 검색 스팬, p95는 가장 느린 생성 스팬이라, LLM 호출이 지연을 지배한다는 게 메트릭으로 드러납니다.
+- 사용자별로 갈라 보면 더 보입니다. alice는 에러율 0.0인데 bob은 0.33입니다. 전체 에러율 0.11에 묻혀 있던 "어느 사용자가 문제인가"가 드러납니다. 검증 실패도 스팬에 남고 요청은 죽지 않습니다. lec03·05에서 본 "기록하고 이어간다"와 같은 결입니다.
+- `self.trace`(앞 단원들)가 한 요청의 관찰이었다면, 여기서는 실제 RAG 요청들의 운영을 봅니다. 같은 트레이스 개념을 식별 필드·구조화 로그·메트릭으로 키운 것입니다.
 
 실전에서는 OpenTelemetry로 트레이싱하고, 구조화 로깅 라이브러리로 로그를 남기고, Grafana·Datadog 같은 도구로 메트릭을 모니터링합니다. LiteLLM도 콜백으로 관찰 도구에 붙습니다. 직접 짜 보면 그 도구들이 무엇을 하는지 또렷해집니다.
 
-## 5. 정리
+## 5. 누구의 요청인가, 어디에 남기나
+
+로그에 user·session·request를 남겼더니 사용자별 메트릭이 공짜로 나왔습니다. bob의 에러율이 alice보다 높다는 것을 전체 숫자에 묻히지 않고 짚어냅니다. 누가 비용을 많이 쓰는지(lec05 사용자별 예산), 어느 테넌트가 느린지, 이 사용자의 그 요청을 따라가며 디버그하기 — 다 식별 필드 덕입니다. 구조화 로그라 필드 하나 더 다는 게 전부입니다. 실전에서는 trace_id(서비스 간 상관)·model·tokens·cost도 함께 답니다.
+
+그럼 이 로그를 어디에 둘까요. 평문 파일로 쌓아두진 않습니다. 구조화돼 있어서 용도에 맞는 곳으로 흘려보냅니다.
+
+```mermaid
+flowchart LR
+  LOG["구조화 로그<br/>JSON (식별 필드 포함)"] --> OPS["로그·메트릭·트레이스 백엔드<br/>Loki·Prometheus·Jaeger"]
+  LOG --> DB["분석 DB<br/>ClickHouse·BigQuery"]
+  classDef default rx:8,ry:8;
+```
+
+- 운영(디버그·알림·대시보드)은 로그·메트릭·트레이스 백엔드로 보냅니다. Loki·Prometheus·Jaeger, 또는 Datadog 같은 것입니다.
+- 오래 질의할 것(사용자별 비용, 몇 달 추세, 감사)은 분석 DB에 적재합니다. ClickHouse·BigQuery·Postgres 같은 것입니다.
+
+구조화 로그가 둘을 잇는 다리입니다. 평문이면 사람만 읽지만, JSON이면 백엔드도 DB도 읽습니다. 그래서 "로그냐 DB냐"가 아니라, 같은 구조화 로그를 용도에 맞는 곳으로 보내는 것입니다.
+
+## 6. 정리
 
 - 한 요청을 보는 `self.trace`로는 운영이 부족합니다. 수천 요청의 추세를 봐야 합니다.
 - 구조화 로그는 사건을 JSON으로 남겨 기계가 읽게 합니다. 평문 로그와 다릅니다.
 - 트레이싱은 한 요청의 스텝을 시간·성패와 함께 스팬으로 기록합니다.
 - 메트릭은 여러 요청을 모아 p50·p95 지연, 에러율 같은 추세를 봅니다.
 - 로그로 파고들고 메트릭으로 살핍니다. 실전에서는 OpenTelemetry·Grafana 같은 도구가 이 역할을 합니다.
+- user·session·request 같은 식별 필드를 남기면 사용자별 메트릭이 나옵니다. 구조화 로그라 백엔드(Loki·Prometheus)와 분석 DB(ClickHouse) 양쪽으로 보낼 수 있습니다.
