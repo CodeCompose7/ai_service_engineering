@@ -18,7 +18,7 @@
 
 import asyncio
 
-from section3.lec02.async_llm import acomplete
+from section3.lec02.async_llm import acomplete, call_count, reset_calls
 from section4.lec02.harness import GuardError
 
 MODERATOR = (
@@ -94,15 +94,17 @@ def main() -> int:
         llm = "차단" if asyncio.run(llm_moderate(text)) else "통과"
         print(f"  {text!r:18} regex={rx} / LLM={llm}")
 
-    print("\n=== 검열 하네스 ===")
+    print("\n=== 검열 하네스 (LLM 호출 수 포함) ===")
     harness = ModeratedHarness()
     for task in RUN_CASES:
+        reset_calls()
         print(f"과제: {task}")
         try:
             print(f"  답: {asyncio.run(harness.run(task))}")
         except GuardError as exc:
             print(f"  차단: {exc}")
-        print(f"  트레이스: {harness.trace}\n")
+        print(f"  트레이스: {harness.trace}")
+        print(f"  LLM 호출: {call_count()}회 (검열이 응답 호출에 더해진다)\n")
     return 0
 
 
