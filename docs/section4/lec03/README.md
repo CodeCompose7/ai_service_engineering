@@ -146,18 +146,22 @@ flowchart TB
 [assistant.py](../../../src/section4/lec03/assistant.py)의 `GuardedAssistant`가 이 흐름을 코드로 보입니다. state.py와 guard.py를 부품으로 가져와 한 번의 `handle`에 엮습니다.
 
 ```text
-요청: 내 플랜이 뭐고 등록된 이메일이 뭔지 알려줘
-  답: 현재 고객님의 플랜은 Free이며, 등록된 이메일 주소는 [이메일]
-  트레이스: ['load(turns=1)', '행동=lookup', '검증 통과(conf=1.0)', 'PII 마스킹', 'save']
+=== 1) 사용자가 사실을 알려줌 (에이전트가 배워서 저장) ===
+요청: 나는 Alice이고 방금 Pro 플랜으로 업그레이드했어. 이메일은 alice@corp.com이야.
+  답: Alice님, Pro 플랜으로의 업그레이드가 확인되었습니다. 이메일 주소는 [이메일]
+  트레이스: ['load(turns=1)', '행동=summarize', "기억={'name': 'Alice', 'plan': 'Pro', 'email': 'alice@corp.com'}", '검증 통과(conf=1.0)', 'PII 마스킹', 'save']
+   디스크에 저장된 facts: {'name': 'Alice', 'plan': 'Pro', 'email': 'alice@corp.com'}
 
+=== 2) 프로세스 재시작 (새 store·새 assistant) ===
+요청: 내 플랜이 뭐였는지랑 이메일 알려줘
+  답: 고객님의 현재 플랜은 Pro이며, 이메일 주소는 [이메일]
+  트레이스: ['load(turns=2)', '행동=lookup', '검증 통과(conf=1.0)', 'PII 마스킹', 'save']
 요청: 내 계정을 삭제해줘
   답: 그 요청(delete_account)은 허용되지 않습니다.
-  트레이스: ['load(turns=2)', '행동=delete_account', '막힘']
-
-누적 turns: 2 (상태가 호출을 넘어 쌓인다)
+  트레이스: ['load(turns=3)', '행동=delete_account', '막힘']
 ```
 
-트레이스가 한 흐름을 그대로 보여줍니다. 첫 요청은 lookup으로 허용돼 모델이 상태(Free 플랜)를 써서 답하고, 이메일은 마스킹돼 나가고, turns가 쌓입니다. 둘째 요청은 delete_account로 막혀 모델을 부르지도 않습니다. 상태와 세 가드가 한 `handle`에 다 돕니다.
+트레이스가 한 흐름을 보여줍니다. 첫 요청에서 에이전트는 대화에서 사실(이름·플랜·이메일)을 뽑아 상태에 저장합니다. 프로세스를 재시작해도(새 store·새 assistant) 디스크에서 그 사실을 불러와, 플랜을 묻는 말에 Pro라고 답하고 이메일은 마스킹해 내보냅니다. 마지막 삭제 요청은 막혀 모델을 부르지도 않습니다. turns는 1, 2, 3으로 호출을 넘어 쌓입니다. 상태가 단순한 카운터가 아니라, 에이전트가 배운 것을 담아 다음 세션으로 나른다는 뜻입니다.
 
 ## 6. 예제 코드가 하는 일 및 결과
 

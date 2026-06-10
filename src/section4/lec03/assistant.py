@@ -19,11 +19,15 @@ import asyncio
 from section3.lec02.async_llm import acomplete
 from section4.lec02.harness import GuardError, Harness
 from section4.lec03.guard import Reply, check_action, decide_action, redact_pii, validate_output
-from section4.lec03.state import SessionStore
+from section4.lec03.state import SessionState, SessionStore
 
 RESPONDER = (
     "너는 고객 지원 도우미다. 주어진 사용자 정보와 요청을 보고 답한다. "
     '반드시 {"answer": "한국어 답", "confidence": 0과 1 사이 숫자} 형식의 JSON만 출력해라.'
+)
+EXTRACTOR = (
+    "사용자 발화에서 사용자에 관한 새 사실(이름·플랜·이메일 등)을 뽑아라. "
+    '{"키": "값"} 형식 JSON으로, 새 사실이 없으면 {} 만 출력해라.'
 )
 
 
@@ -47,13 +51,27 @@ class GuardedAssistant:
             self.store.save(state)
             return {"reply": f"그 요청({action})은 허용되지 않습니다.", "trace": trace}
 
+        learned = await self._extract_facts(request)  # 대화에서 새 사실을 배운다
+        if learned:
+            state.facts.update(learned)
+            trace.append(f"기억={learned}")
+
         reply = await self._respond(state, request)  # 모델 실행 + 출력 검증
         trace.append(f"검증 통과(conf={reply.confidence})")
         safe = redact_pii(reply.answer)  # PII 마스킹
         trace.append("PII 마스킹")
-        self.store.save(state)  # 상태 save
+        self.store.save(state)  # 갱신된 facts + turns 저장
         trace.append("save")
         return {"reply": safe, "confidence": reply.confidence, "trace": trace}
+
+    async def _extract_facts(self, request: str) -> dict:
+        """발화에서 사용자에 관한 새 사실을 뽑아 dict로 돌려준다. 없으면 빈 dict."""
+        raw = await acomplete([
+            {"role": "system", "content": EXTRACTOR},
+            {"role": "user", "content": request},
+        ])
+        data = Harness._parse_action(raw)
+        return data if isinstance(data, dict) else {}
 
     async def _respond(self, state, request: str) -> Reply:
         facts = ", ".join(f"{k}={v}" for k, v in state.facts.items()) or "(없음)"
@@ -69,30 +87,29 @@ class GuardedAssistant:
             return Reply(answer=str(data.get("answer", "답을 만들지 못했습니다")), confidence=0.0)
 
 
+def _run(assistant: "GuardedAssistant", request: str) -> None:
+    result = asyncio.run(assistant.handle("alice", request))
+    print(f"요청: {request}")
+    print(f"  답: {result['reply']}")
+    print(f"  트레이스: {result['trace']}")
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
     load_dotenv()
-    store = SessionStore("/tmp/lec03_assistant")
+    path = "/tmp/lec03_assistant"
+    SessionStore(path).save(SessionState("alice"))  # 빈 상태로 시작
 
-    # 보통은 이전 세션에서 쌓였을 사실을 미리 심어 둔다.
-    seed = store.load("alice")
-    seed.facts = {"name": "Alice", "plan": "Free", "email": "alice@example.com"}
-    seed.turns = 0
-    store.save(seed)
+    print("=== 1) 사용자가 사실을 알려줌 (에이전트가 배워서 저장) ===")
+    first = GuardedAssistant(SessionStore(path))
+    _run(first, "나는 Alice이고 방금 Pro 플랜으로 업그레이드했어. 이메일은 alice@corp.com이야.")
+    print(f"   디스크에 저장된 facts: {SessionStore(path).load('alice').facts}\n")
 
-    assistant = GuardedAssistant(store)
-    requests = [
-        "내 플랜이 뭐고 등록된 이메일이 뭔지 알려줘",
-        "내 계정을 삭제해줘",
-    ]
-    for request in requests:
-        result = asyncio.run(assistant.handle("alice", request))
-        print(f"요청: {request}")
-        print(f"  답: {result['reply']}")
-        print(f"  트레이스: {result['trace']}\n")
-
-    print(f"누적 turns: {store.load('alice').turns} (상태가 호출을 넘어 쌓인다)")
+    print("=== 2) 프로세스 재시작 (새 store·새 assistant) ===")
+    revived = GuardedAssistant(SessionStore(path))
+    _run(revived, "내 플랜이 뭐였는지랑 이메일 알려줘")  # 재시작 후에도 배운 사실을 기억
+    _run(revived, "내 계정을 삭제해줘")  # 가드: 막힘
     return 0
 
 
