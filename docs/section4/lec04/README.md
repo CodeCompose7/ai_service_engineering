@@ -136,7 +136,7 @@ flowchart TB
   MAIN --> DI["detect_injection<br/>LLM-judge"]
   MAIN --> SS["safe_summarize<br/>데이터 프레이밍"]
   MAIN --> CA["check_action (lec03)<br/>최소 권한 백스톱"]
-  DI --> LLM["lec02 acomplete"]
+  DI --> LLM["S3 acomplete"]
   SS --> LLM
   classDef default rx:8,ry:8;
 ```

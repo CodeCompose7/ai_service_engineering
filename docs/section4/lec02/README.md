@@ -197,7 +197,7 @@ flowchart TB
   RUN --> RN["_run_native / _run_fallback<br/>제어 루프 · 강등"]
   RN --> SD["_safe_dispatch<br/>도구 + 오류 복구"]
   RN --> PA["_parse_action<br/>파싱 가드"]
-  RN --> LLM["lec02 acompletion"]
+  RN --> LLM["S3 acompletion"]
   RUN --> LOG["_log → trace<br/>관찰"]
   classDef default rx:8,ry:8;
 ```

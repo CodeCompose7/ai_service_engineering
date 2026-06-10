@@ -71,7 +71,7 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-  Q["에펠탑과 도쿄 타워는<br/>각각 언제?"] --> M["모델"]
+  Q["에펠탑·도쿄 타워<br/>건립 시점"] --> M["모델"]
   M --> S1["search_wikipedia<br/>Eiffel Tower"]
   M --> S2["search_wikipedia<br/>Tokyo Tower"]
   S1 --> A["답<br/>1889 · 1958"]
