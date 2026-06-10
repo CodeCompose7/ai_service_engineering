@@ -3,10 +3,12 @@
 허용 행동 제약·PII 마스킹·출력 검증을 본다.
 """
 
+import asyncio
+
 import pytest
 
 from section4.lec02.harness import GuardError
-from section4.lec03.guard import check_action, redact_pii, validate_output
+from section4.lec03.guard import check_action, decide_action, redact_pii, validate_output
 
 
 def test_check_action_allows_listed():
@@ -38,3 +40,7 @@ def test_validate_output_rejects_out_of_range():
 def test_validate_output_rejects_missing_field():
     with pytest.raises(GuardError):
         validate_output({"answer": "네"})
+
+
+def test_decide_action_is_coroutine():
+    assert asyncio.iscoroutinefunction(decide_action)

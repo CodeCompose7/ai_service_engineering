@@ -72,17 +72,27 @@ flowchart TB
 
 ### 4.1. 허용 행동 제약
 
-에이전트가 할 수 있는 행동을 목록으로 못박습니다. 목록 밖은 막습니다. lec02 harness2의 도구 허용 목록과 같은 결인데, 여기서는 행동 단위의 정책으로 둡니다.
+에이전트가 할 수 있는 행동을 목록으로 못박습니다. 목록 밖은 막습니다.
+
+여기서 `action`은 사용자가 입력한 문자열이 아닙니다. 사용자는 "내 계정 지워줘"라고 자연어로 말하고, 그 말을 행동 이름 `delete_account`로 옮기는 건 모델입니다. 가드는 모델이 고른 행동을 실행 전에 검사합니다. lec02 harness2의 `_authorize`가 모델이 부른 `delete_user`를 검사한 것과 같은 자리입니다.
 
 ```python
 ALLOWED_ACTIONS = {"lookup", "summarize", "recommend"}
 
-def check_action(action):
+async def decide_action(request):   # 자연어 → 행동: 모델이 분류한다
+    ...
+
+def check_action(action):           # 모델이 고른 행동을 검사한다
     if action not in ALLOWED_ACTIONS:
         raise GuardError(f"허용되지 않은 행동: {action}")
 ```
 
-`lookup`은 통과하고 `delete_account`는 막힙니다. 모델이 위험한 행동을 하자고 해도 가드가 거른다는 뜻입니다.
+```text
+'내 정보 좀 찾아줘' → 행동 'lookup': 허용
+'내 계정을 삭제해줘' → 행동 'delete_account': 막힘
+```
+
+"내 정보 찾아줘"는 모델이 `lookup`으로 옮겨 통과하고, "내 계정 삭제해줘"는 `delete_account`로 옮겨져 막힙니다. 모델이 위험한 행동을 하기로 결정해도, 정책에 없으면 가드가 실행을 거릅니다.
 
 ### 4.2. 출력 검증 — Pydantic 계약
 
@@ -143,7 +153,7 @@ flowchart TB
     SS["SessionStore<br/>load · save"] --> JSON["session.json"]
   end
   subgraph GUARD["guard.py"]
-    CA["check_action<br/>허용 행동"]
+    DA["decide_action<br/>자연어→행동 (모델)"] --> CA["check_action<br/>허용 검사"]
     VO["validate_output<br/>Pydantic Reply"]
     RP["redact_pii<br/>정규식"]
   end
@@ -156,9 +166,9 @@ uv run python src/section4/lec03/guard.py
 ```
 
 ```text
-=== 허용 행동 제약 ===
-  lookup: 허용
-  delete_account: 막힘 (허용되지 않은 행동: delete_account)
+=== 허용 행동 제약 (자연어 → 모델이 행동으로 분류 → 가드) ===
+  '내 정보 좀 찾아줘' → 행동 'lookup': 허용
+  '내 계정을 삭제해줘' → 행동 'delete_account': 막힘 (허용되지 않은 행동: delete_account)
 
 === PII 마스킹 ===
   원문:   고객 이메일은 alice@example.com, 전화는 010-1234-5678입니다.
