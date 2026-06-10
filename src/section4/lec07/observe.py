@@ -103,6 +103,21 @@ def metrics_by_user(traces: list[Trace]) -> dict:
     return {user: metrics(ts) for user, ts in sorted(by_user.items())}
 
 
+# --- 운영: 관찰을 행동으로 ---
+def check_alerts(m: dict, p95_max: float = 3000.0, error_max: float = 0.05) -> list[str]:
+    """메트릭이 SLO 임계치를 넘는지 본다. 넘으면 경보 목록을, 정상이면 빈 목록을 돌려준다.
+
+    관찰(메트릭)을 운영(행동)으로 잇는 다리다. 사람은 메트릭을 종일 보지 못하니, 임계치를 두고
+    넘으면 알림이 깨운다.
+    """
+    alerts = []
+    if m["p95_ms"] > p95_max:
+        alerts.append(f"p95 지연 {m['p95_ms']}ms > {p95_max}ms")
+    if m["error_rate"] > error_max:
+        alerts.append(f"에러율 {m['error_rate']} > {error_max}")
+    return alerts
+
+
 _COLLECTION = None
 
 
@@ -160,12 +175,20 @@ def main() -> int:
     for key, value in metrics(traces).items():
         print(f"  {key}: {value}")
 
+    by_user = metrics_by_user(traces)
     print("\n=== 사용자별 메트릭 ===")
-    for user, user_metrics in metrics_by_user(traces).items():
+    for user, user_metrics in by_user.items():
         print(
             f"  {user}: 요청 {user_metrics['requests']}, "
             f"p95 {user_metrics['p95_ms']}ms, 에러율 {user_metrics['error_rate']}"
         )
+
+    print("\n=== 운영: SLO 알림 (임계치 p95<3000ms, 에러율<0.05) ===")
+    for alert in check_alerts(metrics(traces)):
+        print(f"  [ALERT] 전체: {alert}")
+    for user, user_metrics in by_user.items():
+        for alert in check_alerts(user_metrics):
+            print(f"  [ALERT] {user}: {alert}")
     return 0
 
 

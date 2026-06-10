@@ -3,7 +3,7 @@
 분위수와 메트릭 집계를 결정적으로 본다. 타이밍·로그는 예제로 확인한다.
 """
 
-from section4.lec07.observe import Span, Trace, _percentile, metrics, metrics_by_user
+from section4.lec07.observe import Span, Trace, _percentile, check_alerts, metrics, metrics_by_user
 
 
 def test_percentile():
@@ -34,3 +34,9 @@ def test_metrics_by_user_groups():
     assert by_user["alice"]["requests"] == 2
     assert by_user["bob"]["requests"] == 1
     assert by_user["bob"]["error_rate"] == 1.0
+
+
+def test_check_alerts():
+    assert check_alerts({"p95_ms": 1000, "error_rate": 0.0}) == []  # 정상 → 경보 없음
+    fired = check_alerts({"p95_ms": 5000, "error_rate": 0.2})
+    assert len(fired) == 2  # p95·에러율 둘 다 초과
