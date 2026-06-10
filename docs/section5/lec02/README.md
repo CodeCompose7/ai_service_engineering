@@ -130,15 +130,52 @@ uv run uvicorn section5.lec02.app:app --reload
 
 개발과 운영은 다릅니다. devcontainer는 편집기·디버거·테스트까지 담는 개발용이고, 배포 이미지는 서버를 돌리는 데 필요한 것만 담아 작게 만듭니다. 같은 코드를 두 환경에서 돌립니다.
 
+S1에서 본 그림 그대로입니다. 개발 Dockerfile은 dev 컨테이너와 유닛테스트 컨테이너를, 실행 Dockerfile은 배포용 슬림 이미지(실행 컨테이너)를 빌드합니다. 그 실행 컨테이너가 로컬 모델이나 클라우드 API를 부릅니다.
+
 ```mermaid
-flowchart LR
-  DEV["개발 devcontainer<br/>편집기·디버거·테스트"] --> PROD["배포 이미지<br/>서버 실행만"]
-  KEY["API 키<br/>런타임 주입"] --> PROD
-  PROD --> CLOUD["Render·Railway"]
+flowchart TB
+  subgraph COMP2["내 컴퓨터 또는 서버"]
+    subgraph REPO2["프로젝트 파일 (저장소)"]
+      DF1b["개발 Dockerfile<br/>(설계도)"]
+      DF2b["실행 Dockerfile<br/>(설계도)"]
+    end
+    subgraph DOCKER2["Docker (런타임)"]
+      DEVb["dev 컨테이너<br/>강의 내내 작업하는 곳"]
+      TESTb["유닛테스트 컨테이너<br/>테스트만 격리 실행"]
+      RUNb["실행 컨테이너<br/>배포용 슬림 이미지"]
+    end
+    subgraph OLLAMA2["Ollama (별도 프로그램)"]
+      MODELb["gemma4:12b<br/>로컬 모델"]
+    end
+  end
+  EXT2["외부 AI 프로바이더 · 클라우드<br/>Gemini · OpenAI · Claude"]
+
+  DF1b ==>|"빌드"| DEVb
+  DF1b ==>|"빌드"| TESTb
+  DF2b ==>|"빌드"| RUNb
+
+  RUNb -.->|"로컬 호출"| MODELb
+  RUNb -.->|"클라우드 호출"| EXT2
+
   classDef default rx:8,ry:8;
+  classDef ship fill:#eafaef,stroke:#3a9a5c;
+  class RUNb ship;
 ```
 
-[Dockerfile](../../../src/section5/lec02/Dockerfile)은 의존성을 먼저 설치하고 소스를 복사해 uvicorn으로 서버를 띄웁니다. 이 이미지를 Render나 Railway 같은 곳에 올리면 배포됩니다.
+[Dockerfile](../../../src/section5/lec02/Dockerfile)은 의존성을 먼저 설치하고 소스를 복사해 uvicorn으로 서버를 띄웁니다. 빌드해서 키를 런타임에 주입해 돌립니다.
+
+```bash
+# 실행 이미지를 빌드한다. 빌드 컨텍스트는 저장소 루트다.
+docker build -f src/section5/lec02/Dockerfile -t assistant .
+
+# 키를 런타임에 주입해 띄운다. 이미지에는 굽지 않는다.
+docker run -p 8000:8000 \
+  -e DEFAULT_PROVIDER=gemini -e GEMINI_API_KEY=... \
+  assistant
+# http://127.0.0.1:8000
+```
+
+이 이미지를 Render나 Railway 같은 곳에 올리면 배포됩니다. 그때도 키는 플랫폼의 환경변수로 주입합니다.
 
 API 키는 출처가 바뀝니다. 로컬에서는 `.env`로 넣었지만, 배포에서는 누구 키를 쓰느냐로 두 갈래입니다.
 
