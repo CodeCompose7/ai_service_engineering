@@ -106,6 +106,10 @@ flowchart TB
   classDef default rx:8,ry:8;
 ```
 
+```bash
+uv run python src/section4/lec04/defended_agent.py
+```
+
 ```text
 === 정상 요청 (도구 결과 오염을 격리하고 요약) ===
 요청: 이 제품 리뷰들을 요약해줘
