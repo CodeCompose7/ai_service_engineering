@@ -74,7 +74,7 @@ flowchart TB
   classDef default rx:8,ry:8;
 ```
 
-`main`은 `TestClient`로 서버를 띄우지 않고도 엔드포인트를 두드려 봅니다. 진짜로 띄우려면 `uvicorn`을 씁니다. 그러면 브라우저에서 `/`가 [테스트 페이지](../../../src/section5/lec01/web/index.html)를 띄웁니다. 질문을 입력해 "한 번에"와 "스트리밍" 버튼으로 두 엔드포인트를 눌러볼 수 있고, 스트리밍은 토큰이 쌓이는 것이 그대로 보입니다. POST 엔드포인트라 주소창으로는 못 부르니, 이 페이지나 `/docs`(Swagger UI)에서 호출합니다.
+`main`은 `TestClient`로 서버를 띄우지 않고도 엔드포인트를 두드려 봅니다. 진짜로 띄우려면 `uvicorn`을 씁니다. 그러면 브라우저에서 `/`가 [테스트 페이지](../../../src/section5/lec01/web/index.html)를 띄웁니다. 질문을 입력해 "한 번에"와 "스트리밍" 버튼으로 두 엔드포인트를 눌러볼 수 있고, 스트리밍은 토큰이 쌓이는 것이 그대로 보입니다. 모델 답이 마크다운이면 외부 라이브러리 없이 보기 좋게 그려 보여줍니다. POST 엔드포인트라 주소창으로는 못 부르니, 이 페이지나 `/docs`(Swagger UI)에서 호출합니다.
 
 ```bash
 uv run python src/section5/lec01/server.py          # TestClient로 두드려 보기
