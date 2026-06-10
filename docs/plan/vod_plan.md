@@ -72,7 +72,7 @@ GPU 없이 진행한다. LLM은 API 중심이며, 로컬 모델은 옵션이다.
 
 ## 3. 커리큘럼
 
-흐름: **접근(S1) → 데이터·RAG(S2) → 에이전트 빌드(S3) → 신뢰성(S4) → 서빙(S5) → 캡스톤**
+흐름: **접근(S1) → 데이터·RAG(S2) → 에이전트 빌드(S3) → 신뢰성(S4) → 서빙·통합 데모(S5)**
 
 ### S1 — LLM을 서비스로 (120분 / 9단위)
 
@@ -198,7 +198,7 @@ RAG에 필요한 데이터 처리부터 검색·평가까지 mini RAG 한 바퀴
 
 **코드 저장소 구조 (`common-edu-examples`)**
 
-- `s1`~`s5`·`capstone` 폴더별 실습 스크립트
+- `s1`~`s5` 폴더별 실습 스크립트 (통합 데모는 `s5`에 포함, 별도 capstone 폴더 없음)
 - `data/` 예제 문서 (rag.pdf · rag.html)
 - `.devcontainer/`, `pyproject.toml`·`uv.lock`, `README.md`
 
