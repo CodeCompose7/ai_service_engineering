@@ -1,7 +1,7 @@
 # lec01 — FastAPI 서빙 + 스트리밍
 
 > - S5 개요: [docs/section5/README.md](../README.md)
-> - 분량 25분
+> - 분량 10분
 > - 산출물: 추론 API 서버
 
 ## 1. 목표
