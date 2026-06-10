@@ -1,0 +1,170 @@
+# =============================================================================
+# Secrets / Environment
+# =============================================================================
+.env
+.env.*
+!.env.sample
+*.pem
+*.key
+secrets/
+credentials.json
+service-account*.json
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtualenv
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing / coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.cache/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# =============================================================================
+# Package managers
+# =============================================================================
+pip-log.txt
+pip-delete-this-directory.txt
+poetry.lock.bak
+uv.lock.bak
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =============================================================================
+# IDE / Editors
+# =============================================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =============================================================================
+# OS
+# =============================================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# =============================================================================
+# Claude Code (team-shared configs commit OK; only local overrides ignored)
+# =============================================================================
+.claude/settings.local.json
+.claude/.credentials.json
+.claude/scheduled_tasks.lock
+
+# =============================================================================
+# Docker
+# =============================================================================
+*.pid
+docker-compose.override.yml
+
+# =============================================================================
+# LLM / AI project specific
+# =============================================================================
+# Vector store / embeddings cache
+.chroma/
+chroma_db/
+*.chroma
+vector_store/
+embeddings_cache/
+
+# LangChain / LangGraph caches
+.langchain/
+.langgraph/
+langgraph_checkpoints/
+
+# Model cache
+.cache/
+models/
+*.gguf
+*.bin
+*.safetensors
+
+# Datasets (large files)
+data/raw/
+data/processed/
+*.parquet
+*.feather
+
+# Outputs / logs
+outputs/
+logs/
+*.log
+runs/
+wandb/
+
+# =============================================================================
+# Misc
+# =============================================================================
+*.tmp
+*.bak
+*.orig
+.scratch/
+scratch/
+tmp/

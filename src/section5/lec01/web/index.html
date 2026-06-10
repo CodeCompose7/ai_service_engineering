@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>추론 API</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto;
+           padding: 16px; }
+    h1 { font-size: 20px; }
+    .row { display: flex; gap: 8px; margin: 12px 0; }
+    input { flex: 1; padding: 10px; border: 1px solid #888; border-radius: 8px; }
+    button { padding: 10px 14px; border: none; border-radius: 8px; background: #2f6fed;
+             color: #fff; cursor: pointer; }
+    #out { border: 1px solid #ccc; border-radius: 8px; padding: 4px 16px; min-height: 120px;
+           line-height: 1.5; }
+    #out h1, #out h2, #out h3 { font-size: 16px; margin: 12px 0 4px; }
+    #out p { margin: 8px 0; }
+    #out ul, #out ol { margin: 8px 0; padding-left: 22px; }
+    #out code { background: rgba(127,127,127,0.2); padding: 1px 4px; border-radius: 4px;
+                font-family: ui-monospace, monospace; }
+    #out pre { background: rgba(127,127,127,0.15); padding: 10px; border-radius: 8px;
+               overflow-x: auto; }
+    #out pre code { background: none; padding: 0; }
+    #out hr { border: none; border-top: 1px solid #ccc; margin: 12px 0; }
+    a { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>추론 API</h1>
+  <p>질문을 입력하고, 한 번에 받거나 토큰 단위로 스트리밍해 봅니다.</p>
+
+  <div class="row">
+    <input id="q" placeholder="질문을 입력하세요" autocomplete="off" />
+    <button type="button" id="once">한 번에</button>
+    <button type="button" id="stream">스트리밍</button>
+  </div>
+
+  <div id="out"></div>
+  <p><a href="/docs">API 문서 (/docs)</a></p>
+
+  <script>
+    const q = document.getElementById("q");
+    const out = document.getElementById("out");
+
+    // 모델 답이 마크다운이라, 보기 좋게 HTML로 그린다. 외부 라이브러리 없이 흔한 문법만 다룬다.
+    function escapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function inline(s) {
+      return s
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    }
+    function renderMarkdown(text) {
+      const lines = escapeHtml(text).split("\n");
+      const html = [];
+      let listType = null;
+      let inCode = false;
+      let codeBuf = [];
+      const closeList = () => {
+        if (listType) { html.push("</" + listType + ">"); listType = null; }
+      };
+      for (const line of lines) {
+        if (line.trim().startsWith("```")) {
+          if (inCode) {
+            html.push("<pre><code>" + codeBuf.join("\n") + "</code></pre>");
+            codeBuf = []; inCode = false;
+          } else { closeList(); inCode = true; }
+          continue;
+        }
+        if (inCode) { codeBuf.push(line); continue; }
+        if (/^\s*---\s*$/.test(line)) { closeList(); html.push("<hr>"); continue; }
+        const h = line.match(/^(#{1,3})\s+(.*)$/);
+        if (h) { closeList(); const n = h[1].length;
+                 html.push(`<h${n}>${inline(h[2])}</h${n}>`); continue; }
+        const ul = line.match(/^\s*[-*]\s+(.*)$/);
+        if (ul) { if (listType !== "ul") { closeList(); html.push("<ul>"); listType = "ul"; }
+                  html.push("<li>" + inline(ul[1]) + "</li>"); continue; }
+        const ol = line.match(/^\s*\d+\.\s+(.*)$/);
+        if (ol) { if (listType !== "ol") { closeList(); html.push("<ol>"); listType = "ol"; }
+                  html.push("<li>" + inline(ol[1]) + "</li>"); continue; }
+        if (line.trim() === "") { closeList(); continue; }
+        closeList();
+        html.push("<p>" + inline(line) + "</p>");
+      }
+      if (inCode) html.push("<pre><code>" + codeBuf.join("\n") + "</code></pre>");
+      closeList();
+      return html.join("\n");
+    }
+
+    function question() {
+      const text = q.value.trim();
+      if (!text) out.textContent = "질문을 입력하세요.";
+      return text;
+    }
+
+    document.getElementById("once").addEventListener("click", async () => {
+      const text = question();
+      if (!text) return;
+      out.textContent = "생성 중...";
+      const res = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text }),
+      });
+      const data = await res.json();
+      if (res.ok) out.innerHTML = renderMarkdown(data.answer);
+      else out.textContent = "오류: " + JSON.stringify(data);
+    });
+
+    document.getElementById("stream").addEventListener("click", async () => {
+      const text = question();
+      if (!text) return;
+      out.textContent = "";
+      const res = await fetch("/generate/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text }),
+      });
+      if (!res.ok) {
+        out.textContent = "오류: " + (await res.text());
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        out.innerHTML = renderMarkdown(acc);  // 쌓이는 대로 다시 그린다
+      }
+    });
+  </script>
+</body>
+</html>
