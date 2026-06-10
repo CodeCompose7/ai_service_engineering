@@ -35,15 +35,32 @@ class GenerateRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
-async def run_completion(model: str, messages: list[dict], kwargs: dict) -> str:
+async def run_completion(
+    model: str,
+    messages: list[dict],
+    kwargs: dict,
+) -> str:
     """비스트리밍 모델 호출. 테스트에서 가짜로 갈아끼운다."""
-    response = await litellm.acompletion(model=model, messages=messages, **kwargs)
+    response = await litellm.acompletion(
+        model=model,
+        messages=messages,
+        **kwargs,
+    )
     return response.choices[0].message.content
 
 
-async def run_stream(model: str, messages: list[dict], kwargs: dict):
+async def run_stream(
+    model: str,
+    messages: list[dict],
+    kwargs: dict,
+):
     """스트리밍 모델 호출. 델타 토큰을 하나씩 내보낸다."""
-    stream = await litellm.acompletion(model=model, messages=messages, stream=True, **kwargs)
+    stream = await litellm.acompletion(
+        model=model,
+        messages=messages,
+        stream=True,
+        **kwargs,
+    )
     async for chunk in stream:
         delta = chunk.choices[0].delta.content
         if delta:
@@ -76,9 +93,16 @@ async def generate(req: GenerateRequest) -> dict:
     """질문을 받아 답을 한 번에 돌려준다."""
     messages = [{"role": "user", "content": req.question}]
     try:
-        answer = await run_completion(app.state.model, messages, app.state.kwargs)
+        answer = await run_completion(
+            app.state.model,
+            messages,
+            app.state.kwargs,
+        )
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"모델 호출 실패: {exc}") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"모델 호출 실패: {exc}",
+        ) from exc
     return {"answer": answer}
 
 
@@ -98,11 +122,18 @@ def main() -> int:
 
     with TestClient(app) as client:
         print("=== /generate (한 번에) ===")
-        resp = client.post("/generate", json={"question": "한국의 수도는 어디인가요?"})
+        resp = client.post(
+            "/generate",
+            json={"question": "한국의 수도는 어디인가요?"},
+        )
         print(f"  {resp.status_code} {resp.json()}")
 
         print("\n=== /generate/stream (토큰을 흘려보냄) ===  ", end="")
-        with client.stream("POST", "/generate/stream", json={"question": "1부터 5까지 세줘"}) as s:
+        with client.stream(
+            "POST",
+            "/generate/stream",
+            json={"question": "1부터 5까지 세줘"},
+        ) as s:
             for chunk in s.iter_text():
                 print(chunk, end="", flush=True)
         print()
