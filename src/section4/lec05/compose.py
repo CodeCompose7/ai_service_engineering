@@ -36,9 +36,11 @@ def budgeted(call, budget: Budget):
     return wrapped
 
 
-# 하네스들은 llm을 주입받는다. 메서드 이름이 달라도 다 llm(messages)로 부른다.
+# 하네스들은 llm을 주입받되 기본값을 둔다(생성자 주입 + 기본값). 그냥 쓰면 기본 호출,
+# 예산을 입히려면 감싼 호출을 주입한다. 메서드 이름이 달라도 다 llm(messages)로 부른다.
+# 실전에서는 기본값이 acomplete이고, 여기서는 결정적 데모라 fake_llm을 쓴다.
 class SummarizeHarness:
-    def __init__(self, llm):
+    def __init__(self, llm=fake_llm):
         self.llm = llm
 
     async def run(self, text: str) -> str:
@@ -46,7 +48,7 @@ class SummarizeHarness:
 
 
 class TranslateHarness:
-    def __init__(self, llm):
+    def __init__(self, llm=fake_llm):
         self.llm = llm
 
     async def run(self, text: str) -> str:
@@ -54,6 +56,10 @@ class TranslateHarness:
 
 
 def main() -> int:
+    # 주입 없이 쓰면 기본 호출(fake_llm)이 그대로 쓰인다.
+    print("=== 기본값 (주입 없음) ===")
+    print(f"  {asyncio.run(SummarizeHarness().run('안녕'))}\n")
+
     # 예산을 호출에 한 번 두르고, 두 하네스에 같은 llm을 주입한다.
     budget = Budget(limit=40)
     llm = budgeted(fake_llm, budget)

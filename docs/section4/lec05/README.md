@@ -184,18 +184,24 @@ class BudgetedSummarize:               # SummarizeHarness를 감싼다
         return await self.inner.run(text)
 ```
 
-호출을 감싸 주입하는 방법입니다.
+호출을 감싸 주입하는 방법입니다. 하네스는 `llm`을 받되 기본값을 두는 생성자 주입 + 기본값 방식입니다. 그냥 쓰면 기본 호출, 예산을 입히려면 감싼 호출을 주입합니다.
 
 ```python
-def budgeted(call, budget):            # 호출 한 곳을 감싼다
+class SummarizeHarness:
+    def __init__(self, llm=acomplete):     # 생성자 주입 + 기본값
+        self.llm = llm
+    async def run(self, text):
+        return await self.llm([{"role": "user", "content": f"요약: {text}"}])
+
+def budgeted(call, budget):                # 호출 한 곳을 감싼다
     async def wrapped(messages):
         budget.charge(_cost(messages))
         return await call(messages)
     return wrapped
 
-llm = budgeted(acomplete, budget)      # 한 번만
-summarize = SummarizeHarness(llm)      # 같은 llm
-translate = TranslateHarness(llm)      # 같은 llm — 예산을 공유
+llm = budgeted(acomplete, budget)          # 예산을 입힌 호출
+summarize = SummarizeHarness(llm)          # 주입하면 그걸로 교체 — 예산 공유
+translate = TranslateHarness(llm)          # 같은 llm
 ```
 
 | 방법 | 문제 |
@@ -221,6 +227,9 @@ uv run python src/section4/lec05/compose.py
 ```
 
 ```text
+=== 기본값 (주입 없음) ===
+  [응답] 요약: 안녕
+
 === 두 하네스가 한 예산을 공유 (한도 40) ===
   SummarizeHarness: 성공 → 남은 예산 31
   TranslateHarness: 성공 → 남은 예산 23
@@ -229,7 +238,7 @@ uv run python src/section4/lec05/compose.py
   SummarizeHarness: 거부 (예산 초과: 33 + 10 > 40)
 ```
 
-두 하네스가 같은 예산을 공유합니다. 번갈아 돌리면 한 예산이 둘에 걸쳐 줄고, 다 떨어지면 다음 호출이 거부됩니다. 어느 하네스 클래스도 예산을 모릅니다. 예산은 주입된 호출에만 있습니다. 실전에서는 이 공유 호출 층이 LiteLLM Router이고, budgets·fallbacks·retries를 거기 설정하면 모든 하네스가 받습니다.
+주입 없이 쓰면 기본 호출이 그대로 돌고, 예산을 입힌 호출을 주입하면 두 하네스가 같은 예산을 공유합니다. 번갈아 돌리면 한 예산이 둘에 걸쳐 줄고, 다 떨어지면 다음 호출이 거부됩니다. 어느 하네스 클래스도 예산을 모릅니다. 예산은 주입된 호출에만 있습니다. 실전에서는 이 공유 호출 층이 LiteLLM Router이고, budgets·fallbacks·retries를 거기 설정하면 모든 하네스가 받습니다.
 
 ## 9. 예제 코드가 하는 일 및 결과
 
