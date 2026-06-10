@@ -19,12 +19,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from section2.lec06.mini_rag import open_index
 from section4.lec07.observe import check_alerts, metrics, metrics_by_user
-from section5.lec02.assistant import Settings, Store, handle
+from section5.lec02.assistant import Settings, Store, handle, handle_stream
 
 WEB = Path(__file__).parent / "web"
 
@@ -85,6 +85,20 @@ async def chat(req: ChatRequest) -> dict:
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"처리 실패: {exc}") from exc
+
+
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest) -> StreamingResponse:
+    return StreamingResponse(
+        handle_stream(
+            req.message,
+            req.user,
+            app.state.settings,
+            app.state.store,
+            app.state.collection,
+        ),
+        media_type="text/plain; charset=utf-8",
+    )
 
 
 @app.get("/api/metrics")

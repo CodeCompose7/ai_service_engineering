@@ -42,3 +42,39 @@ def test_store_request_ids_increment():
     store = assistant.Store()
     assert store.next_request_id() == "req-0"
     assert store.next_request_id() == "req-1"
+
+
+async def _collect(agen):
+    out = []
+    async for item in agen:
+        out.append(item)
+    return out
+
+
+def test_handle_stream_generates(monkeypatch):
+    async def no(_message):
+        return False
+
+    async def fake_stream(_messages):
+        for token in ["안", "녕"]:
+            yield token
+
+    monkeypatch.setattr(assistant, "detect_injection", no)
+    monkeypatch.setattr(assistant, "llm_moderate", no)
+    monkeypatch.setattr(assistant, "_generate_stream", fake_stream)
+    settings = assistant.Settings(rag=False)
+    store = assistant.Store()
+    tokens = asyncio.run(_collect(assistant.handle_stream("안녕?", "u", settings, store, None)))
+    assert "".join(tokens) == "안녕"
+    assert len(store.traces) == 1
+
+
+def test_handle_stream_blocks_injection(monkeypatch):
+    async def yes(_message):
+        return True
+
+    monkeypatch.setattr(assistant, "detect_injection", yes)
+    settings = assistant.Settings(rag=False, moderate=False)
+    store = assistant.Store()
+    tokens = asyncio.run(_collect(assistant.handle_stream("주입", "u", settings, store, None)))
+    assert "".join(tokens).startswith("[차단]")

@@ -13,7 +13,10 @@ handle 하나가 이 파이프라인이다. app.py의 /chat 핸들러가 이걸 
 
 from dataclasses import dataclass
 
+import litellm
+
 from section2.lec06.mini_rag import build_messages, expand_with_neighbors, retrieve
+from section3.lec01.llm import resolve_model
 from section3.lec02.async_llm import acomplete
 from section4.lec02.harness3 import llm_moderate
 from section4.lec03.guard import redact_pii
@@ -94,3 +97,52 @@ async def handle(
 
     store.add(trace)
     return {"blocked": False, "reason": "", "answer": answer}
+
+
+async def _generate_stream(messages: list[dict]):
+    """생성을 토큰 단위로 흘린다. lec01에서 본 LiteLLM stream=True 그대로다."""
+    model, kwargs = resolve_model()
+    stream = await litellm.acompletion(model=model, messages=messages, stream=True, **kwargs)
+    async for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+
+async def handle_stream(
+    message: str,
+    user: str,
+    settings: Settings,
+    store: Store,
+    collection,
+):
+    """채팅을 스트리밍으로 처리한다. 입력 가드는 스트림 전에 끝내고, 생성만 토큰 단위로 흘린다.
+
+    출력 PII 가림은 전체 답이 있어야 하므로 스트리밍과 상충한다. 여기서는 입력 가드(주입·검열)만
+    걸고, 엄격한 출력 가림이 필요하면 비스트리밍 handle을 쓴다.
+    """
+    trace = Trace(store.next_request_id(), user=user)
+
+    with trace.span("guard"):
+        reason = await _input_blocked(message, settings)
+    if reason:
+        store.add(trace)
+        yield f"[차단] {reason}"
+        return
+
+    with trace.span("retrieve"):
+        if settings.rag and collection is not None:
+            hits = retrieve(collection, message, 3)
+            contexts = expand_with_neighbors(collection, hits, 1)
+        else:
+            contexts = []
+
+    with trace.span("generate"):
+        if contexts:
+            messages = build_messages(message, contexts)
+        else:
+            messages = [{"role": "user", "content": message}]
+        async for token in _generate_stream(messages):
+            yield token
+
+    store.add(trace)

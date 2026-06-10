@@ -54,3 +54,14 @@ def test_pages_serve(client):
     assert home.status_code == 200
     assert "통합 어시스턴트" in home.text
     assert client.get("/admin").status_code == 200
+
+
+def test_chat_stream(client, monkeypatch):
+    async def fake_stream(_messages):
+        for token in ["테", "스", "트"]:
+            yield token
+
+    monkeypatch.setattr(assistant, "_generate_stream", fake_stream)
+    with client.stream("POST", "/chat/stream", json={"message": "안녕?", "user": "web"}) as s:
+        body = "".join(s.iter_text())
+    assert body == "테스트"
