@@ -52,7 +52,7 @@ def test_stream_concatenates_tokens(client, monkeypatch):
     assert body == "안녕!"
 
 
-def test_index_guides(client):
+def test_index_serves_page(client):
     resp = client.get("/")
     assert resp.status_code == 200
-    assert "endpoints" in resp.json()
+    assert "추론 API" in resp.text  # JSON이 아니라 테스트 HTML 페이지

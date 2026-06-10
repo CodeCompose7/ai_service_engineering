@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>추론 API</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto;
+           padding: 16px; }
+    h1 { font-size: 20px; }
+    .row { display: flex; gap: 8px; margin: 12px 0; }
+    input { flex: 1; padding: 10px; border: 1px solid #888; border-radius: 8px; }
+    button { padding: 10px 14px; border: none; border-radius: 8px; background: #2f6fed;
+             color: #fff; cursor: pointer; }
+    #out { white-space: pre-wrap; border: 1px solid #ccc; border-radius: 8px;
+           padding: 12px; min-height: 120px; }
+    a { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>추론 API</h1>
+  <p>질문을 입력하고, 한 번에 받거나 토큰 단위로 스트리밍해 봅니다.</p>
+
+  <div class="row">
+    <input id="q" placeholder="질문을 입력하세요" autocomplete="off" />
+    <button type="button" id="once">한 번에</button>
+    <button type="button" id="stream">스트리밍</button>
+  </div>
+
+  <div id="out"></div>
+  <p><a href="/docs">API 문서 (/docs)</a></p>
+
+  <script>
+    const q = document.getElementById("q");
+    const out = document.getElementById("out");
+
+    function question() {
+      const text = q.value.trim();
+      if (!text) out.textContent = "질문을 입력하세요.";
+      return text;
+    }
+
+    document.getElementById("once").addEventListener("click", async () => {
+      const text = question();
+      if (!text) return;
+      out.textContent = "생성 중...";
+      const res = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text }),
+      });
+      const data = await res.json();
+      out.textContent = res.ok ? data.answer : "오류: " + JSON.stringify(data);
+    });
+
+    document.getElementById("stream").addEventListener("click", async () => {
+      const text = question();
+      if (!text) return;
+      out.textContent = "";
+      const res = await fetch("/generate/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text }),
+      });
+      if (!res.ok) {
+        out.textContent = "오류: " + (await res.text());
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        out.textContent += decoder.decode(value, { stream: true });
+      }
+    });
+  </script>
+</body>
+</html>
