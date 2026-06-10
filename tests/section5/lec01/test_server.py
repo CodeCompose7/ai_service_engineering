@@ -50,3 +50,9 @@ def test_stream_concatenates_tokens(client, monkeypatch):
     with client.stream("POST", "/generate/stream", json={"question": "인사해"}) as s:
         body = "".join(s.iter_text())
     assert body == "안녕!"
+
+
+def test_index_guides(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "endpoints" in resp.json()

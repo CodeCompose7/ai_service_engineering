@@ -73,7 +73,7 @@ flowchart TB
   classDef default rx:8,ry:8;
 ```
 
-`main`은 `TestClient`로 서버를 띄우지 않고도 엔드포인트를 두드려 봅니다. 진짜로 띄우려면 `uvicorn`을 씁니다.
+`main`은 `TestClient`로 서버를 띄우지 않고도 엔드포인트를 두드려 봅니다. 진짜로 띄우려면 `uvicorn`을 씁니다. 그러면 브라우저에서 `/`는 안내를, `/docs`는 Swagger UI를 보여줍니다. `/generate`는 POST라 주소창으로는 못 부르니, `/docs`에서 눌러보거나 아래 `main`처럼 호출합니다.
 
 ```bash
 uv run python src/section5/lec01/server.py          # TestClient로 두드려 보기

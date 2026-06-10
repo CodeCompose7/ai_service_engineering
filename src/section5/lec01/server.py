@@ -61,6 +61,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="추론 API", lifespan=lifespan)
 
 
+@app.get("/")
+async def index() -> dict:
+    """브라우저로 들어오면 보이는 안내. /generate는 POST라 주소창으로는 못 부르니, 어떤
+    엔드포인트가 있는지와 눌러볼 곳(/docs)을 알려준다."""
+    return {
+        "service": "추론 API 서버",
+        "endpoints": {
+            "POST /generate": "질문에 답을 한 번에",
+            "POST /generate/stream": "답을 토큰 단위로 스트리밍",
+        },
+        "try": "/docs 에서 눌러볼 수 있습니다",
+    }
+
+
 @app.post("/generate")
 async def generate(req: GenerateRequest) -> dict:
     """질문을 받아 답을 한 번에 돌려준다."""
