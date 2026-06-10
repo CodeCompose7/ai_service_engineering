@@ -225,7 +225,7 @@ flowchart LR
   classDef default rx:8,ry:8;
 ```
 
-무엇이 좋은지는 데이터마다 달라, lec07의 검색 평가로 Recall@k를 재서 조합을 고릅니다. 다음 단위 lec06 mini RAG는 top-k 검색으로 답에 필요한 청크들을 함께 모아 LLM이 합성하게 해, 이 한계를 직접 다룹니다.
+무엇이 좋은지는 데이터마다 달라, lec07의 검색 평가로 Hit Rate@k를 재서 조합을 고릅니다. 다음 단위 lec06 mini RAG는 top-k 검색으로 답에 필요한 청크들을 함께 모아 LLM이 합성하게 해, 이 한계를 직접 다룹니다.
 
 ## 9. 정리
 
