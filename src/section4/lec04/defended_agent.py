@@ -35,33 +35,50 @@ def fetch_reviews(product: str) -> list[str]:
 class DefendedAgent:
     """입력과 도구 결과를 스크리닝하고, 외부 콘텐츠를 데이터로 취급하는 하네스."""
 
+    def __init__(self):
+        self.trace: list[str] = []
+
     async def summarize_reviews(self, request: str, product: str) -> dict:
-        trace: list[str] = []
+        """방어 흐름의 오케스트레이터: 입력 검사 → 수집 → 오염 격리 → 데이터로 요약."""
+        self.trace = []
+        if not await self._input_ok(request):
+            return {"reply": "요청에서 주입이 감지되어 처리를 거부합니다.", "trace": self.trace}
+        reviews = self._fetch(product)
+        clean = await self._quarantine(reviews)
+        summary = await self._summarize(clean)
+        return {"reply": summary, "trace": self.trace}
 
-        # 1. 입력 스크리닝 — 직접 주입
+    async def _input_ok(self, request: str) -> bool:
+        """입력 스크리닝 — 직접 주입을 막는다."""
         if await detect_injection(request):
-            trace.append("입력 주입 감지 → 거부")
-            return {"reply": "요청에서 주입이 감지되어 처리를 거부합니다.", "trace": trace}
-        trace.append("입력 통과")
+            self.trace.append("입력 주입 감지 → 거부")
+            return False
+        self.trace.append("입력 통과")
+        return True
 
-        # 2. 도구 호출 — 외부 콘텐츠를 가져온다
+    def _fetch(self, product: str) -> list[str]:
+        """도구 호출 — 외부 콘텐츠를 가져온다."""
         reviews = fetch_reviews(product)
-        trace.append(f"리뷰 {len(reviews)}건 수집")
+        self.trace.append(f"리뷰 {len(reviews)}건 수집")
+        return reviews
 
-        # 3. 도구 결과 스크리닝 — 간접 주입(오염)을 격리한다
+    async def _quarantine(self, reviews: list[str]) -> list[str]:
+        """도구 결과 스크리닝 — 간접 주입(오염)을 격리하고 정상만 남긴다."""
         clean = []
         for review in reviews:
             if await detect_injection(review):
-                trace.append("오염 리뷰 격리")
+                self.trace.append("오염 리뷰 격리")
             else:
                 clean.append(review)
-        trace.append(f"정상 {len(clean)}건 남음")
+        self.trace.append(f"정상 {len(clean)}건 남음")
+        return clean
 
-        # 4. 데이터로 취급해 요약 — 남은 것도 구분자로 감싼다
-        joined = "\n".join(f"- {review}" for review in clean)
-        summary = await safe_summarize(joined)
-        trace.append("데이터로 요약")
-        return {"reply": summary.strip(), "trace": trace}
+    async def _summarize(self, reviews: list[str]) -> str:
+        """남은 리뷰를 데이터로 감싸 요약한다."""
+        joined = "\n".join(f"- {review}" for review in reviews)
+        summary = (await safe_summarize(joined)).strip()
+        self.trace.append("데이터로 요약")
+        return summary
 
 
 def _run(agent: DefendedAgent, request: str) -> None:
