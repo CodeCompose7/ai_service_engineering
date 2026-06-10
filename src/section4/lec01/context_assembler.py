@@ -7,6 +7,7 @@
 - 어디에: 순서. 모델은 양 끝을 더 잘 보므로 관련 높은 것을 앞뒤 끝에 둔다(lost-in-the-middle).
 - 어떻게 줄이나: 압축의 갈래. 잘라내기(truncate)·발췌(extractive)·요약(summarize)을 고른다.
 - 어떻게 담나: 포맷. [근거]·[질문] 같은 구분자로 모델이 파싱하기 쉽게 둔다.
+- 무엇을 빼나: 관련도 임계값. 예산이 남아도 관련 낮은 청크는 잡음이라 넣지 않는다.
 
 토큰은 LiteLLM token_counter로, 검색은 S2 임베더로 한다.
 
@@ -25,6 +26,7 @@ COUNT_MODEL = "gemini/gemini-2.5-flash"
 SYSTEM = "너는 도우미다. 주어진 근거와 대화 맥락만 써서 한국어로 짧게 답한다."
 COMPACT_SYSTEM = "다음 대화를 한두 문장으로 요약한다. 사용자에 관한 사실만 남긴다."
 RECENT_TURNS = 2  # 최근 몇 턴을 그대로 둘지
+RELEVANCE_FLOOR = 0.45  # 이 유사도 미만은 잡음으로 보고 버린다
 
 
 def count_tokens(text: str) -> int:
@@ -37,9 +39,18 @@ def _turns_text(turns: list[tuple]) -> str:
 
 
 # --- 검색과 순서(positioning) ---
-def _retrieve(question: str, kb: list[str], k: int) -> list[str]:
-    """질문에 가까운 청크 k개를 임베딩 유사도 내림차순으로 고른다."""
-    return [text for text, _ in most_similar(question, kb)[:k]]
+def _rank(question: str, kb: list[str], k: int) -> list[tuple]:
+    """질문에 가까운 청크를 (텍스트, 유사도) 내림차순으로 k개 준다."""
+    return most_similar(question, kb)[:k]
+
+
+def _retrieve(question: str, kb: list[str], k: int, floor: float = 0.0) -> list[str]:
+    """상위 k개 중 유사도 floor 이상만 고른다. floor 미만은 잡음이라 버린다.
+
+    예산이 더 허용해도, 관련 낮은 청크는 넣을수록 모델을 헷갈리게 한다.
+    더 넣는 게 늘 좋은 건 아니다.
+    """
+    return [text for text, score in _rank(question, kb, k) if score >= floor]
 
 
 def _order_edges(items: list[str]) -> list[str]:
@@ -98,9 +109,10 @@ async def assemble(
     budget: int,
     k: int = 4,
     strategy: str = "summarize",
+    floor: float = 0.0,
 ) -> dict:
     """예산 안에 검색·최근 대화·압축을 조립한다. 예산이 빠듯하면 압축하고 청크를 덜어낸다."""
-    chunks = _retrieve(question, kb, k)
+    chunks = _retrieve(question, kb, k, floor)
     recent, old = history[-RECENT_TURNS:], history[:-RECENT_TURNS]
     memory_text = _turns_text(old)
 
@@ -174,6 +186,21 @@ async def compare_compaction() -> None:
     print()
 
 
+async def compare_relevance() -> None:
+    """예산이 허용해도 관련 낮은 청크는 잡음이라 버린다. 더 넣는 게 늘 좋은 건 아니다."""
+    print("=== 더 넣는 게 늘 좋은 건 아니다 (관련도 임계값) ===")
+    print(f"  질문: {QUESTION}")
+    print("  유사도 (높을수록 관련):")
+    for text, score in _rank(QUESTION, KB, len(KB)):
+        mark = "통과" if score >= RELEVANCE_FLOOR else "버림 (잡음)"
+        print(f"    {score:.2f}  {mark:<9} {text}")
+    wide = await assemble(QUESTION, HISTORY, KB, 400, floor=0.0)
+    floored = await assemble(QUESTION, HISTORY, KB, 400, floor=RELEVANCE_FLOOR)
+    print(f"  임계값 없음 → 청크 {wide['chunks_kept']}개 (예산이 허용하는 만큼)")
+    print(f"  임계값 {RELEVANCE_FLOOR} → 청크 {floored['chunks_kept']}개 (관련된 것만)")
+    print()
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
@@ -182,6 +209,7 @@ def main() -> int:
     asyncio.run(_demo("넉넉한 예산", 400))
     asyncio.run(_demo("빠듯한 예산", 200))
     asyncio.run(compare_compaction())
+    asyncio.run(compare_relevance())
     return 0
 
 
