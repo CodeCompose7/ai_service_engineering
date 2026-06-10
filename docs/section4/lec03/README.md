@@ -143,12 +143,31 @@ flowchart TB
 
 한 번의 처리 흐름은 이렇습니다. 세션 상태를 `load`로 불러와 컨텍스트에 보태고, 허용 행동인지 보고, 모델을 돌리고, 출력을 검증·마스킹해 내보낸 뒤, 바뀐 상태를 `save`로 저장합니다. lec02에서 "가드레일은 자리만 잡고 lec03에서 채운다"고 한 그 자리입니다.
 
+[assistant.py](../../../src/section4/lec03/assistant.py)의 `GuardedAssistant`가 이 흐름을 코드로 보입니다. state.py와 guard.py를 부품으로 가져와 한 번의 `handle`에 엮습니다.
+
+```text
+요청: 내 플랜이 뭐고 등록된 이메일이 뭔지 알려줘
+  답: 현재 고객님의 플랜은 Free이며, 등록된 이메일 주소는 [이메일]
+  트레이스: ['load(turns=1)', '행동=lookup', '검증 통과(conf=1.0)', 'PII 마스킹', 'save']
+
+요청: 내 계정을 삭제해줘
+  답: 그 요청(delete_account)은 허용되지 않습니다.
+  트레이스: ['load(turns=2)', '행동=delete_account', '막힘']
+
+누적 turns: 2 (상태가 호출을 넘어 쌓인다)
+```
+
+트레이스가 한 흐름을 그대로 보여줍니다. 첫 요청은 lookup으로 허용돼 모델이 상태(Free 플랜)를 써서 답하고, 이메일은 마스킹돼 나가고, turns가 쌓입니다. 둘째 요청은 delete_account로 막혀 모델을 부르지도 않습니다. 상태와 세 가드가 한 `handle`에 다 돕니다.
+
 ## 6. 예제 코드가 하는 일 및 결과
 
-[state.py](../../../src/section4/lec03/state.py)는 세션 상태의 저장·불러오기를, [guard.py](../../../src/section4/lec03/guard.py)는 세 가드레일을 각각 보입니다.
+[state.py](../../../src/section4/lec03/state.py)는 세션 상태의 저장·불러오기를, [guard.py](../../../src/section4/lec03/guard.py)는 세 가드레일을, [assistant.py](../../../src/section4/lec03/assistant.py)는 둘을 엮은 하네스를 보입니다.
 
 ```mermaid
 flowchart TB
+  ASST["assistant.py<br/>GuardedAssistant — 부품을 엮는 하네스"]
+  ASST --> STATE
+  ASST --> GUARD
   subgraph STATE["state.py"]
     SS["SessionStore<br/>load · save"] --> JSON["session.json"]
   end
@@ -163,6 +182,7 @@ flowchart TB
 ```bash
 uv run python src/section4/lec03/state.py
 uv run python src/section4/lec03/guard.py
+uv run python src/section4/lec03/assistant.py
 ```
 
 ```text
@@ -192,3 +212,4 @@ uv run python src/section4/lec03/guard.py
 - 가드레일은 허용 행동·출력 계약·개인정보를 세 곳에서 검사합니다.
 - 출력 검증은 Pydantic 계약으로 합니다. S1 구조화 출력과 같은 결이고, 하네스의 검증 층을 채웁니다.
 - 상태와 가드는 lec02 하네스의 빈 슬롯에 끼우는 부품입니다. 모델 둘레에 기억과 안전장치를 두릅니다.
+- assistant.py가 그 부품들을 한 흐름(load → 검사 → 실행 → 검증·마스킹 → save)으로 엮은 하네스입니다. 게이트만이 아니라 허용된 일은 실제로 실행해 답까지 냅니다.
