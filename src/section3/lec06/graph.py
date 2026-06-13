@@ -27,17 +27,15 @@ from section3.lec03.tools.geocode import geocode
 from section3.lec03.tools.weather import get_weather
 
 WARN_KEYWORDS = ("비", "눈", "소나기", "뇌우", "이슬비")
-ALERT_SYSTEM = (
-    "날씨 보고를 한국어 두세 문장으로 브리핑하되, 비·눈 등 주의 도시를 먼저 짚어 알린다."
-)
+ALERT_SYSTEM = "날씨 보고를 한국어 두세 문장으로 브리핑하되, 비·눈 등 주의 도시를 먼저 짚어 알린다."
 NORMAL_SYSTEM = "날씨 보고를 한국어 두세 문장으로 담백하게 브리핑한다."
 
 
 class State(TypedDict):
-    cities: list[str]                       # 처리할 도시 목록 (입력)
-    index: int                              # 진행 위치 (루프 카운터)
+    cities: list[str]  # 처리할 도시 목록 (입력)
+    index: int  # 진행 위치 (루프 카운터)
     reports: Annotated[list, operator.add]  # 도시별 결과를 누적
-    summary: str                            # 마지막 요약 (마지막 값으로 덮음)
+    summary: str  # 마지막 요약 (마지막 값으로 덮음)
 
 
 async def fetch_one(state: State) -> dict:
@@ -61,10 +59,10 @@ async def fetch_one(state: State) -> dict:
 def route(state: State) -> str:
     """조건 엣지 — 도시가 남았으면 루프, 끝났으면 주의 유무로 갈래를 나눈다."""
     if state["index"] < len(state["cities"]):
-        return "fetch_one"                      # 루프: 다음 도시로
+        return "fetch_one"  # 루프: 다음 도시로
     if any(r.get("warn") for r in state["reports"]):
-        return "summarize_alert"                # 갈래: 주의 도시 있음
-    return "summarize_normal"                   # 갈래: 모두 무난
+        return "summarize_alert"  # 갈래: 주의 도시 있음
+    return "summarize_normal"  # 갈래: 모두 무난
 
 
 def _as_text(reports: list) -> str:
@@ -74,7 +72,9 @@ def _as_text(reports: list) -> str:
             lines.append(f"{r['city']}: 조회 실패")
         else:
             mark = " (주의)" if r["warn"] else ""
-            lines.append(f"{r['city']}: {r['temp_c']}도, {r['condition']}{mark}")
+            lines.append(
+                f"{r['city']}: {r['temp_c']}도, {r['condition']}{mark}",
+            )
     return "\n".join(lines)
 
 
