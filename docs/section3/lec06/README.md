@@ -147,6 +147,55 @@ if "__interrupt__" in out:
 
 ## 7. 예제 코드가 하는 일 및 결과
 
+### 7.1. graph.py — 순차 루프 + 분기
+
+[graph.py](../../../src/section3/lec06/graph.py)를 실행하면 그래프가 그린 구조와 순차 루프가 도는 과정이 보입니다.
+
+```bash
+uv run python src/section3/lec06/graph.py
+```
+
+그래프가 스스로 그린 모습입니다. 한 조건 엣지가 `fetch_one`으로 되돌아가는 점선 루프와 두 요약 갈래로 갈라집니다.
+
+```mermaid
+graph TD;
+  __start__([__start__]):::first
+  fetch_one(fetch_one)
+  summarize_alert(summarize_alert)
+  summarize_normal(summarize_normal)
+  __end__([__end__]):::last
+  __start__ --> fetch_one;
+  fetch_one -.-> fetch_one;
+  fetch_one -.-> summarize_alert;
+  fetch_one -.-> summarize_normal;
+  summarize_alert --> __end__;
+  summarize_normal --> __end__;
+  classDef first fill-opacity:0
+  classDef last fill:#bfb6fc
+```
+
+```text
+=== 자동화 실행: ['Seoul', 'Tokyo', 'London'] ===
+  [fetch_one] Seoul 처리 (index→1)
+  [fetch_one] Tokyo 처리 (index→2)
+  [fetch_one] London 처리 (index→3)
+  [summarize_normal] 갈래 선택
+
+수집한 보고:
+Seoul: 23.9도, 맑음
+Tokyo: 25.2도, 대체로 맑음
+London: 14.5도, 맑음
+
+브리핑: 서울과 도쿄는 각각 23.9도와 25.2도로 맑거나 대체로 맑은 날씨를 보이겠습니다. 반면 런던은 14.5도로 맑겠지만 기온은 상대적으로 낮겠습니다.
+```
+
+읽어낼 점입니다.
+
+- `fetch_one`이 도시마다 한 번씩 돌며 `index`를 한 칸씩 밉니다. 세 도시를 다 처리하면 루프를 빠져나갑니다.
+- 세 도시 모두 비·눈이 없어 `route`가 `summarize_normal` 갈래를 고릅니다. 한 곳이라도 주의 도시였다면 `summarize_alert`로 갔을 것입니다.
+
+### 7.2. briefing.py — 병렬·서브그래프·재시도·사람 개입
+
 [briefing.py](../../../src/section3/lec06/briefing.py)는 네 패턴을 한 그래프에 엮습니다. 병렬로 모으고, 실패는 견디고, 발송 전 멈춰 승인을 받고, 갈래로 요약합니다. 코드 구조는 이렇습니다.
 
 ```mermaid

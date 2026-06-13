@@ -36,7 +36,10 @@ class State(TypedDict):
 
 
 def _msg(system: str, user: str) -> list[dict]:
-    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
 
 
 def _parse_plan(text: str) -> list[str]:
@@ -52,25 +55,42 @@ def _parse_plan(text: str) -> list[str]:
 
 async def planner(state: State) -> dict:
     """과제를 단계 목록으로 쪼갠다."""
-    return {"plan": _parse_plan(await acomplete(_msg(PLANNER, state["task"])))}
+    return {
+        "plan": _parse_plan(await acomplete(_msg(PLANNER, state["task"]))),
+    }
 
 
 async def executor(state: State) -> dict:
     """현재 단계를 실행하고, step을 한 칸 민다."""
     step = state["plan"][state["step"]]
-    done = "\n".join(f"- {s}: {r}" for s, r in zip(state["plan"], state["results"], strict=False))
+    done = "\n".join(
+        f"- {s}: {r}"
+        for s, r in zip(
+            state["plan"],
+            state["results"],
+            strict=False,
+        )
+    )
     user = f"과제: {state['task']}\n지금까지:\n{done or '(아직 없음)'}\n이번 단계: {step}"
     out = await acomplete(_msg(EXECUTOR, user))
-    return {"results": [out.replace("\n", " ").strip()], "step": state["step"] + 1}
+    return {
+        "results": [out.replace("\n", " ").strip()],
+        "step": state["step"] + 1,
+    }
 
 
 async def synthesize(state: State) -> dict:
     """단계 결과들을 한 편의 글로 합친다."""
     joined = "\n".join(
         f"{i}. {s}\n   {r}"
-        for i, (s, r) in enumerate(zip(state["plan"], state["results"], strict=True), 1)
+        for i, (s, r) in enumerate(
+            zip(state["plan"], state["results"], strict=True),
+            1,
+        )
     )
-    return {"final": await acomplete(_msg(SYNTH, f"과제: {state['task']}\n\n{joined}"))}
+    return {
+        "final": await acomplete(_msg(SYNTH, f"과제: {state['task']}\n\n{joined}")),
+    }
 
 
 def route(state: State) -> str:
@@ -87,7 +107,12 @@ def build_graph():
     graph.add_edge(START, "planner")
     graph.add_edge("planner", "executor")
     graph.add_conditional_edges(
-        "executor", route, {"executor": "executor", "synthesize": "synthesize"}
+        "executor",
+        route,
+        {
+            "executor": "executor",
+            "synthesize": "synthesize",
+        },
     )
     graph.add_edge("synthesize", END)
     return graph.compile()

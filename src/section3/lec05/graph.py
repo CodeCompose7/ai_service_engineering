@@ -37,14 +37,19 @@ SYSTEM = (
 
 
 class State(TypedDict):
-    messages: Annotated[list, operator.add]      # 대화를 이어 붙임
+    messages: Annotated[list, operator.add]  # 대화를 이어 붙임
     tools_used: Annotated[list[str], operator.add]  # 부른 도구 이름을 이어 붙임
 
 
 async def call_model(state: State) -> dict:
     """model 노드 — 도구 목록과 함께 모델을 부르고, 응답을 상태에 누적한다."""
     model, kwargs = resolve_model()
-    resp = await acompletion(model, state["messages"], tools=TOOLS, **kwargs)
+    resp = await acompletion(
+        model,
+        state["messages"],
+        tools=TOOLS,
+        **kwargs,
+    )
     return {"messages": [resp.choices[0].message.model_dump()]}
 
 
@@ -80,7 +85,11 @@ def build_graph(checkpointer=None):
     graph.add_node("model", call_model)
     graph.add_node("tools", run_tools)
     graph.add_edge(START, "model")
-    graph.add_conditional_edges("model", should_continue, {"tools": "tools", END: END})
+    graph.add_conditional_edges(
+        "model",
+        should_continue,
+        {"tools": "tools", END: END},
+    )
     graph.add_edge("tools", "model")
     return graph.compile(checkpointer=checkpointer)
 
@@ -101,7 +110,10 @@ def _initial(task: str) -> dict:
 async def run(task: str) -> dict:
     """그래프를 한 번 돌려, 부른 도구와 최종 답을 추린다."""
     state = await APP.ainvoke(_initial(task))
-    return {"answer": state["messages"][-1]["content"], "tools_used": state["tools_used"]}
+    return {
+        "answer": state["messages"][-1]["content"],
+        "tools_used": state["tools_used"],
+    }
 
 
 async def stream_run(task: str) -> None:
@@ -124,7 +136,12 @@ async def memory_demo() -> str:
     await app.ainvoke(_initial("서울 날씨 알려줘"), config)
     # 둘째 호출 — 히스토리를 다시 넘기지 않는다. 체크포인터가 기억한다.
     state = await app.ainvoke(
-        {"messages": [{"role": "user", "content": "방금 어디 날씨를 물어봤지?"}]}, config
+        {
+            "messages": [
+                {"role": "user", "content": "방금 어디 날씨를 물어봤지?"},
+            ]
+        },
+        config,
     )
     return state["messages"][-1]["content"]
 
