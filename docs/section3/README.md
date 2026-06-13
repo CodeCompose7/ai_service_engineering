@@ -28,15 +28,15 @@ flowchart LR
 
 | 단위 | 분 | 주제 | 산출물 |
 | --- | --- | --- | --- |
-| [lec01](lec01/README.md) | 24 | function calling 원리 | 단일 tool 호출 |
-| [lec02](lec02/README.md) | 22 | 단일 도구 에이전트 | 동작 에이전트 |
-| [lec03](lec03/README.md) | 20 | multi-tool agent | 멀티툴 에이전트 |
-| [lec04](lec04/README.md) | 20 | MCP로 도구 연결 | MCP 연결 에이전트 |
-| [lec05](lec05/README.md) | 22 | LangGraph 기초 | 최소 그래프 |
-| [lec06](lec06/README.md) | 22 | LangGraph 실전 | 자동화 그래프 |
-| [lec07](lec07/README.md) | 12 | 계획 수립과 자기수정 | 계획·자기수정 에이전트 |
+| [lec01](lec01/README.md) | 21 | function calling 원리 | 단일 tool 호출 |
+| [lec02](lec02/README.md) | 17 | 단일 도구 에이전트 | 동작 에이전트 |
+| [lec03](lec03/README.md) | 17 | multi-tool agent | 멀티툴 에이전트 |
+| [lec04](lec04/README.md) | 15 | MCP로 도구 연결 | MCP 연결 에이전트 |
+| [lec05](lec05/README.md) | 15 | LangGraph 기초 | 최소 그래프 |
+| [lec06](lec06/README.md) | 15 | LangGraph 실전 | 자동화 그래프 |
+| [lec07](lec07/README.md) | 9 | 계획 수립과 자기수정 | 계획·자기수정 에이전트 |
 
-합계 142분, 7단위입니다.
+합계 109분, 7단위입니다.
 
 ## 흐름
 

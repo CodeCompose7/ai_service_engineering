@@ -1,7 +1,7 @@
 # lec04 — 임베딩
 
 > - S2 개요: [docs/section2/README.md](../README.md)
-> - 분량 8분
+> - 분량 9분
 > - 산출물: 임베딩 함수
 
 ## 1. 목표
