@@ -1,7 +1,7 @@
 # lec07 — 관찰·운영
 
 > - S4 개요: [docs/section4/README.md](../README.md)
-> - 분량 12분
+> - 분량 11분
 > - 산출물: 관찰 모듈
 
 ## 1. 목표

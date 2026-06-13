@@ -1,7 +1,7 @@
 # lec06 — LiteLLM 멀티 프로바이더
 
 > - S1 개요: [docs/section1/README.md](../README.md)
-> - 분량 5분
+> - 분량 8분
 > - 산출물: 멀티 프로바이더 래퍼
 
 ## 1. 목표

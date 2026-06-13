@@ -1,7 +1,7 @@
 # lec05 — 벡터DB Chroma
 
 > - S2 개요: [docs/section2/README.md](../README.md)
-> - 분량 10분
+> - 분량 9분
 > - 산출물: Chroma 컬렉션
 
 ## 1. 목표

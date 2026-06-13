@@ -1,7 +1,7 @@
 # lec02 — LLM 멘탈 모델
 
 > - S1 개요: [docs/section1/README.md](../README.md)
-> - 분량 15분
+> - 분량 21분
 > - 산출물: 개념
 
 ## 1. 목표

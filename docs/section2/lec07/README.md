@@ -1,7 +1,7 @@
 # lec07 — 검색 평가
 
 > - S2 개요: [docs/section2/README.md](../README.md)
-> - 분량 9분
+> - 분량 8분
 > - 산출물: 평가 스크립트
 
 ## 1. 목표

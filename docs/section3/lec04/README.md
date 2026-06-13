@@ -1,7 +1,7 @@
 # lec04 — MCP로 도구 연결
 
 > - S3 개요: [docs/section3/README.md](../README.md)
-> - 분량 20분
+> - 분량 15분
 > - 산출물: MCP 연결 에이전트
 
 ## 1. 목표

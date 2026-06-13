@@ -32,13 +32,13 @@ flowchart LR
 
 | 단위 | 분 | 주제 | 산출물 |
 | --- | --- | --- | --- |
-| [lec01](lec01/README.md) | 8 | 데이터 수집·정제 | 정제 스크립트 |
-| [lec02](lec02/README.md) | 6 | 문서 로딩 | 텍스트 추출기 |
-| [lec03](lec03/README.md) | 7 | 청킹 | 청킹 유틸 |
-| [lec04](lec04/README.md) | 8 | 임베딩 | 임베딩 함수 |
-| [lec05](lec05/README.md) | 10 | 벡터DB Chroma | Chroma 컬렉션 |
-| [lec06](lec06/README.md) | 10 | mini RAG | 동작 mini RAG |
-| [lec07](lec07/README.md) | 9 | 검색 평가 | 평가 스크립트·웹 |
+| [lec01](lec01/README.md) | 9 | 데이터 수집·정제 | 정제 스크립트 |
+| [lec02](lec02/README.md) | 7 | 문서 로딩 | 텍스트 추출기 |
+| [lec03](lec03/README.md) | 8 | 청킹 | 청킹 유틸 |
+| [lec04](lec04/README.md) | 9 | 임베딩 | 임베딩 함수 |
+| [lec05](lec05/README.md) | 9 | 벡터DB Chroma | Chroma 컬렉션 |
+| [lec06](lec06/README.md) | 8 | mini RAG | 동작 mini RAG |
+| [lec07](lec07/README.md) | 8 | 검색 평가 | 평가 스크립트·웹 |
 
 합계 58분, 7단위입니다.
 
